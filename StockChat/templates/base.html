@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}StockChat{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root{
+            --hero-overlay-top: rgba(3,37,65,0.30);
+            --hero-overlay-bottom: rgba(3,37,65,0.55);
+        }
+        body { font-family: 'Poppins', Arial, sans-serif; }
+        .hero {
+            position: relative;
+            background: url('https://source.unsplash.com/1600x900/?stock,market') no-repeat center center;
+            background-size: cover;
+            color: white;
+            height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+        }
+        .hero::before{
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, var(--hero-overlay-top), var(--hero-overlay-bottom));
+            z-index: 0;
+        }
+        .hero > .container, .hero * { position: relative; z-index: 1; }
+
+        /* Improved heading styles */
+        .hero h1{
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 700;
+            line-height: 1.05;
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.5px;
+            color: transparent;
+            background: linear-gradient(90deg, #ffffff 0%, #d9ecff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow: none;
+        }
+        .hero .lead{
+            color: rgba(255,255,255,0.92);
+            font-weight: 300;
+            font-size: 1.0625rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+        }
+
+        /* Small utility to slightly lift CTA */
+        .hero .btn{ transform: translateY(1px); }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'home' %}">StockChat</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'contact' %}">Contact</a></li>
+                    <li class="nav-item"><a class="nav-link btn btn-primary text-white" href="#signup">Sign Up</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <p>&copy; 2026 StockChat. All rights reserved.</p>
+            <small>Built with Django &amp; Bootstrap</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

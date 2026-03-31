@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Home — StockChat{% endblock %}
+
+{% block content %}
+    <div style="margin-left : 80px; margin-right:50px">
+    <br>
+    <h1>Contact Us</h1>
+    <br>
+    <form action="{% url 'contact' %}" method="post">{% csrf_token %}
+        <div class="mb-3">
+            <label for="name" class="form-label"> Name</label>
+            <input type="text" class="form-control" id="name" name="name" aria-describedby="name">
+        </div>
+        <div class="mb-3">
+            <label for="email" class="form-label">Email Id</label>
+            <input type="email" class="form-control" id="email" name="email" aria-describedby="emailHelp">
+        </div>
+        <div class="mb-3">
+            <label for="phone" class="form-label">Phone Number</label>
+            <input type="tel" class="form-control" name="phone" id="phone">
+        </div>
+        <div class="mb-3">
+            <label for="Content" class="form-label">Please state your Concern</label>
+            <textarea class="form-control" name="content" id="Content" cols="30" rows="5"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="DOB" class="form-label">Date of Birth</label>
+            <input type="date" class="form-control" name="DOB" id="DOB">
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+{% endblock %}
