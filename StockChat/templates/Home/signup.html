@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Contact — StockChat{% endblock %}
+{% block title %}Sign Up — StockChat{% endblock %}
 
 {% block pre_content %}
     <div class="page-header">
         <div class="container">
-            <h1>Contact Us</h1>
-            <p>Have a question or feedback? We'd love to hear from you.</p>
+            <h1>Create an Account</h1>
+            <p>Join StockChat to start tracking your portfolio.</p>
         </div>
     </div>
 {% endblock %}
@@ -14,18 +14,22 @@
 {% block content %}
     <section class="py-5">
         <div class="form-card">
-            <form action="{% url 'contact' %}" method="post">{% csrf_token %}
+            <form method="post">{% csrf_token %}
                 {% for field in form %}
                 <div class="mb-3">
                     <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                     {{ field }}
+                    {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
                     {% for error in field.errors %}
                     <div class="text-danger small">{{ error }}</div>
                     {% endfor %}
                 </div>
                 {% endfor %}
-                <button type="submit" class="btn btn-primary w-100">Submit</button>
+                <button type="submit" class="btn btn-primary w-100">Sign Up</button>
             </form>
+            <p class="text-center mt-3 mb-0">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
         </div>
     </section>
 {% endblock %}
