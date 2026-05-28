@@ -43,6 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Home',
+    'portfolio',
+    'communities',
+    'market_data',
+    'friends',
+    'chat',
 ]
 
 MIDDLEWARE = [

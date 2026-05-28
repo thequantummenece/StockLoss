@@ -4,35 +4,170 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}StockChat{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
         :root {
-            --sc-dark: #032541;
-            --sc-mid: #0d4f8b;
-            --sc-accent: #0d6efd;
-            --sc-overlay-top: rgba(3,37,65,0.30);
-            --sc-overlay-bottom: rgba(3,37,65,0.55);
+            --sc-dark: #0a1628;
+            --sc-mid: #132743;
+            --sc-accent: #2563eb;
+            --sc-accent-hover: #1d4ed8;
+            --sc-surface: #f8fafc;
+            --sc-border: #e2e8f0;
+            --sc-text: #1e293b;
+            --sc-text-muted: #64748b;
+            --sc-sidebar-w: 240px;
+            --sc-navbar-h: 52px;
         }
 
-        /* ── Sticky footer layout ────────────────────────────── */
+        /* ── Reset & base ───────────────────────────────────── */
         html { height: 100%; }
         body {
-            font-family: 'Poppins', Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100%;
             display: flex;
             flex-direction: column;
+            color: var(--sc-text);
+            background: var(--sc-surface);
         }
-        main { flex: 1 0 auto; }
+        .app-wrapper { flex: 1 0 auto; display: flex; }
         footer { flex-shrink: 0; }
+
+        /* ── Navbar ──────────────────────────────────────────── */
+        .sc-navbar {
+            background: var(--sc-dark);
+            height: var(--sc-navbar-h);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+        .sc-navbar .navbar-brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -.3px;
+            color: #fff;
+        }
+        .sc-navbar .nav-link {
+            color: rgba(255,255,255,.7);
+            font-size: .85rem;
+            font-weight: 500;
+            padding: .4rem .75rem;
+            transition: color .15s;
+        }
+        .sc-navbar .nav-link:hover { color: #fff; }
+        .nav-logout-form { display: inline; margin: 0; padding: 0; }
+        .nav-logout-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,.25);
+            color: rgba(255,255,255,.8);
+            padding: .2rem .7rem;
+            border-radius: .3rem;
+            font-size: .8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .nav-logout-btn:hover {
+            background: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.5);
+            color: #fff;
+        }
+        .nav-user {
+            color: rgba(255,255,255,.55);
+            font-size: .8rem;
+            font-weight: 400;
+        }
+
+        /* ── Sidebar toggle ─────────────────────────────────── */
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,.7);
+            font-size: 1.15rem;
+            padding: .2rem .45rem;
+            cursor: pointer;
+            line-height: 1;
+            transition: color .15s;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar-toggle:hover { color: #fff; }
+
+        /* ── Sidebar ────────────────────────────────────────── */
+        .sidebar {
+            width: var(--sc-sidebar-w);
+            min-height: calc(100vh - var(--sc-navbar-h));
+            background: var(--sc-dark);
+            padding: .75rem 0;
+            flex-shrink: 0;
+            position: sticky;
+            top: var(--sc-navbar-h);
+            align-self: flex-start;
+            transition: width .25s cubic-bezier(.4,0,.2,1);
+            overflow: hidden;
+            border-right: 1px solid rgba(255,255,255,.06);
+        }
+        .sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            border-right: none;
+        }
+        .sidebar .sidebar-section {
+            color: rgba(255,255,255,.35);
+            font-size: .65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            padding: .6rem 1.25rem .3rem;
+            white-space: nowrap;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,.6);
+            padding: .5rem 1.25rem;
+            font-size: .85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            border-left: 2px solid transparent;
+            transition: all .15s;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .sidebar .nav-link:hover {
+            color: rgba(255,255,255,.9);
+            background: rgba(255,255,255,.04);
+        }
+        .sidebar .nav-link.active {
+            color: #fff;
+            background: rgba(37,99,235,.12);
+            border-left-color: var(--sc-accent);
+        }
+        .sidebar .nav-link i {
+            font-size: .95rem;
+            width: 1.1rem;
+            text-align: center;
+            opacity: .8;
+        }
+        .sidebar .nav-link.active i { opacity: 1; }
+        .sidebar-divider {
+            border-top: 1px solid rgba(255,255,255,.06);
+            margin: .5rem 1rem;
+        }
+
+        /* ── Main content ───────────────────────────────────── */
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
 
         /* ── Hero (home page) ────────────────────────────────── */
         .hero {
             position: relative;
-            background: url('https://source.unsplash.com/1600x900/?stock,market') no-repeat center center;
-            background-size: cover;
+            background: linear-gradient(135deg, var(--sc-dark) 0%, var(--sc-mid) 100%);
             color: white;
-            height: 80vh;
+            height: 75vh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -43,55 +178,54 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, var(--sc-overlay-top), var(--sc-overlay-bottom));
-            z-index: 0;
+            background: radial-gradient(ellipse at 30% 50%, rgba(37,99,235,.15) 0%, transparent 60%);
         }
         .hero > .container, .hero * { position: relative; z-index: 1; }
         .hero h1 {
-            font-size: clamp(2rem, 6vw, 4rem);
+            font-size: clamp(2rem, 5vw, 3.25rem);
             font-weight: 700;
-            line-height: 1.05;
-            margin: 0 0 0.5rem 0;
-            letter-spacing: -0.5px;
-            color: transparent;
-            background: linear-gradient(90deg, #ffffff 0%, #d9ecff 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            text-shadow: none;
+            line-height: 1.1;
+            margin: 0 0 .75rem 0;
+            letter-spacing: -.5px;
+            color: #fff;
         }
         .hero .lead {
-            color: rgba(255,255,255,0.92);
-            font-weight: 300;
-            font-size: 1.0625rem;
-            margin-bottom: 1rem;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+            color: rgba(255,255,255,.7);
+            font-weight: 400;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
         }
-        .hero .btn { transform: translateY(1px); }
+        .hero .btn-primary {
+            background: var(--sc-accent);
+            border-color: var(--sc-accent);
+            font-weight: 600;
+            padding: .6rem 2rem;
+        }
+        .hero .btn-primary:hover {
+            background: var(--sc-accent-hover);
+            border-color: var(--sc-accent-hover);
+        }
 
-        /* ── Page header (all inner pages) ───────────────────── */
+        /* ── Page header (inner pages) ──────────────────────── */
         .page-header {
             background: linear-gradient(135deg, var(--sc-dark), var(--sc-mid));
             color: #fff;
-            padding: 2.5rem 0 2rem;
+            padding: 2rem 0 1.5rem;
             text-align: center;
         }
-        .page-header h1 {
-            font-weight: 700;
-            font-size: 2rem;
-            margin: 0 0 0.25rem;
-        }
-        .page-header p {
-            color: rgba(255,255,255,0.8);
-            margin: 0;
-        }
+        .page-header h1 { font-weight: 700; font-size: 1.75rem; margin: 0 0 .2rem; }
+        .page-header p { color: rgba(255,255,255,.6); margin: 0; font-size: .9rem; }
 
-        /* ── Form card (login, signup, contact) ──────────────── */
+        /* ── Form card ──────────────────────────────────────── */
         .form-card {
             max-width: 520px;
             margin: 0 auto;
             background: #fff;
-            border-radius: 0.75rem;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            border-radius: .5rem;
+            border: 1px solid var(--sc-border);
             padding: 2rem;
         }
         .form-card input:not([type="hidden"]):not([type="submit"]):not([type="checkbox"]),
@@ -100,52 +234,51 @@
             display: block;
             width: 100%;
             padding: .375rem .75rem;
-            font-size: 1rem;
-            font-weight: 400;
-            line-height: 1.5;
-            color: #212529;
-            background-color: #fff;
-            border: 1px solid #dee2e6;
-            border-radius: .375rem;
-            transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+            font-size: .9rem;
+            color: var(--sc-text);
+            background: #fff;
+            border: 1px solid var(--sc-border);
+            border-radius: .35rem;
+            transition: border-color .15s, box-shadow .15s;
         }
         .form-card input:focus,
         .form-card select:focus,
         .form-card textarea:focus {
-            border-color: #86b7fe;
+            border-color: var(--sc-accent);
             outline: 0;
-            box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
         }
 
-        /* ── Feature icons (home page) ───────────────────────── */
-        .feature-icon {
-            font-size: 3rem;
+        /* ── Feature cards (home page) ──────────────────────── */
+        .feature-card {
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+        .feature-card .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: .5rem;
+            background: rgba(37,99,235,.08);
             color: var(--sc-accent);
-            margin-bottom: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
         }
-
-        /* ── Navbar tweaks ───────────────────────────────────── */
-        .nav-logout-form {
-            display: inline;
+        .feature-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: .4rem;
+            color: var(--sc-text);
+        }
+        .feature-card p {
+            font-size: .85rem;
+            color: var(--sc-text-muted);
             margin: 0;
-            padding: 0;
-        }
-        .nav-logout-btn {
-            background: none;
-            border: 1px solid rgba(255,255,255,.5);
-            color: #fff;
-            padding: .25rem .75rem;
-            border-radius: .375rem;
-            font-size: .875rem;
-            cursor: pointer;
-            transition: background .15s, border-color .15s;
-        }
-        .nav-logout-btn:hover {
-            background: rgba(255,255,255,.15);
-            border-color: #fff;
         }
 
-        /* ── Alerts (inside page-header context) ─────────────── */
+        /* ── Alerts ─────────────────────────────────────────── */
         .page-alerts {
             margin-top: -1rem;
             margin-bottom: 0;
@@ -156,33 +289,115 @@
         .port-header {
             background: linear-gradient(135deg, var(--sc-dark), var(--sc-mid));
             color: #fff;
-            padding: 2rem 0 1.5rem;
+            padding: 1.5rem 0 1.25rem;
         }
-        .port-header h2 { font-weight: 700; margin: 0; }
+        .port-header h2 { font-weight: 700; font-size: 1.4rem; margin: 0; }
         .stat { display: inline-block; margin-right: 2rem; }
-        .stat span { font-size: 1.5rem; font-weight: 700; }
-        .stat small { display: block; opacity: .75; font-size: .8rem; }
+        .stat span { font-size: 1.35rem; font-weight: 700; }
+        .stat small { display: block; opacity: .5; font-size: .75rem; font-weight: 500; }
         .port-table th {
-            font-size: .78rem;
+            font-size: .72rem;
             text-transform: uppercase;
             letter-spacing: .5px;
-            background: #f8f9fa;
+            font-weight: 600;
+            background: var(--sc-surface);
+            color: var(--sc-text-muted);
         }
-        .port-table td { vertical-align: middle; }
-        .ticker { font-weight: 700; color: var(--sc-mid); }
-        .stock-name { color: #666; font-size: .85rem; }
+        .port-table td { vertical-align: middle; font-size: .9rem; }
+        .ticker { font-weight: 600; color: var(--sc-text); }
+        .stock-name { color: var(--sc-text-muted); font-size: .8rem; }
         .inline-form { display: inline; }
 
+        /* ── Placeholder page ───────────────────────────────── */
+        .placeholder-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5rem 2rem;
+            text-align: center;
+            flex: 1;
+        }
+        .placeholder-page .ph-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: .75rem;
+            background: rgba(37,99,235,.06);
+            color: var(--sc-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .placeholder-page h2 {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--sc-text);
+            margin-bottom: .35rem;
+        }
+        .placeholder-page p {
+            color: var(--sc-text-muted);
+            max-width: 360px;
+            font-size: .9rem;
+        }
+
         /* ── Footer ──────────────────────────────────────────── */
+        footer {
+            background: var(--sc-dark);
+            color: rgba(255,255,255,.4);
+            font-size: .8rem;
+        }
         footer p, footer small { margin-bottom: 0; }
+
+        /* ── Global button overrides ─────────────────────────── */
+        .btn-primary {
+            background: var(--sc-accent);
+            border-color: var(--sc-accent);
+        }
+        .btn-primary:hover {
+            background: var(--sc-accent-hover);
+            border-color: var(--sc-accent-hover);
+        }
+
+        /* ── Mobile ──────────────────────────────────────────── */
+        @media (max-width: 767.98px) {
+            .sidebar {
+                position: fixed;
+                left: calc(-1 * var(--sc-sidebar-w));
+                top: var(--sc-navbar-h);
+                z-index: 1040;
+                transition: left .25s cubic-bezier(.4,0,.2,1);
+                height: calc(100vh - var(--sc-navbar-h));
+                overflow-y: auto;
+                width: var(--sc-sidebar-w) !important;
+                padding: .75rem 0 !important;
+                border-right: 1px solid rgba(255,255,255,.06) !important;
+            }
+            .sidebar.mobile-open { left: 0; }
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                top: var(--sc-navbar-h);
+                background: rgba(0,0,0,.5);
+                z-index: 1039;
+            }
+            .sidebar-backdrop.show { display: block; }
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark sc-navbar">
+        <div class="container-fluid px-3">
+            {% if user.is_authenticated %}
+            <button class="sidebar-toggle me-2" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
+            {% endif %}
             <a class="navbar-brand" href="{% url 'home' %}">StockChat</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -191,16 +406,15 @@
                     <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">About</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'contact' %}">Contact</a></li>
                     {% if user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'portfolio' %}">Portfolio</a></li>
-                    <li class="nav-item"><span class="nav-link text-light">Hi, {{ user.username }}</span></li>
-                    <li class="nav-item ms-lg-2">
+                    <li class="nav-item"><span class="nav-link nav-user">{{ user.username }}</span></li>
+                    <li class="nav-item ms-lg-1">
                         <form method="post" action="{% url 'logout' %}" class="nav-logout-form">
                             {% csrf_token %}
-                            <button type="submit" class="nav-logout-btn">Logout</button>
+                            <button type="submit" class="nav-logout-btn">Log out</button>
                         </form>
                     </li>
                     {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Log in</a></li>
                     <li class="nav-item ms-lg-2"><a class="btn btn-primary btn-sm text-white px-3" href="{% url 'signup' %}">Sign Up</a></li>
                     {% endif %}
                 </ul>
@@ -208,31 +422,80 @@
         </div>
     </nav>
 
-    <main>
-        {% block pre_content %}{% endblock %}
-
-        {% if messages %}
-        <div class="container mt-3 page-alerts">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
+    <div class="app-wrapper">
+        {% if user.is_authenticated %}
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-section">Invest</div>
+            <a class="nav-link {% if request.resolver_match.url_name == 'portfolio' %}active{% endif %}" href="{% url 'portfolio' %}">
+                <i class="bi bi-briefcase"></i> Portfolio
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'market_data' %}active{% endif %}" href="{% url 'market_data' %}">
+                <i class="bi bi-graph-up"></i> Market Data
+            </a>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section">Social</div>
+            <a class="nav-link {% if request.path|slice:':14' == '/communities/' %}active{% endif %}" href="{% url 'communities' %}">
+                <i class="bi bi-people"></i> Communities
+            </a>
+            <a class="nav-link {% if request.path|slice:':9' == '/friends/' %}active{% endif %}" href="{% url 'friends' %}">
+                <i class="bi bi-person-plus"></i> Friends
+            </a>
+            <a class="nav-link {% if request.path|slice:':6' == '/chat/' %}active{% endif %}" href="{% url 'chat' %}">
+                <i class="bi bi-chat-left-text"></i> Chat
+            </a>
+        </aside>
         {% endif %}
 
-        {% block content %}{% endblock %}
-    </main>
+        <main class="main-content">
+            {% block pre_content %}{% endblock %}
 
-    <footer class="bg-dark text-white py-3 mt-auto">
+            {% if messages %}
+            <div class="container mt-3 page-alerts">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <footer class="py-3 mt-auto">
         <div class="container text-center">
-            <p>&copy; 2026 StockChat. All rights reserved.</p>
-            <small>Built with Django &amp; Bootstrap</small>
+            <p>&copy; 2026 StockChat</p>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar) return;
+            var isMobile = window.innerWidth < 768;
+
+            if (isMobile) {
+                sidebar.classList.toggle('mobile-open');
+                backdrop.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+            }
+        }
+
+        (function() {
+            var sidebar = document.getElementById('sidebar');
+            if (!sidebar) return;
+            if (localStorage.getItem('sidebar-collapsed') === 'true' && window.innerWidth >= 768) {
+                sidebar.classList.add('collapsed');
+            }
+        })();
+    </script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
