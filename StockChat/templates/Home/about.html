@@ -2,15 +2,17 @@
 
 {% block title %}About — StockChat{% endblock %}
 
-{% block content %}
-    <header class="hero text-center">
+{% block pre_content %}
+    <div class="page-header">
         <div class="container">
             <h1>About StockChat</h1>
-            <p class="lead">We connect investors with real-time market data and community insights.</p>
+            <p>We connect investors with real-time market data and community insights.</p>
         </div>
-    </header>
+    </div>
+{% endblock %}
 
-    <main class="py-5">
+{% block content %}
+    <section class="py-5">
         <div class="container">
             <h2>Our Mission</h2>
             <p>StockChat's mission is to democratize market information, making it easier for everyone to learn, trade, and collaborate.</p>
@@ -25,5 +27,5 @@
             <h3>Contact</h3>
             <p>Questions or feedback? Email us at <a href="mailto:hello@stockchat.example">hello@stockchat.example</a>.</p>
         </div>
-    </main>
+    </section>
 {% endblock %}
