@@ -1,6 +1,6 @@
 # StockChat — Complete Codebase Explanation
 
-This document walks through every file in the StockChat Django project, explaining what each piece does, why it exists, and how it connects to the rest of the system.
+This document walks through the StockChat Django project, explaining what each piece does, why it exists, and how it connects to the rest of the system.
 
 ---
 
@@ -10,33 +10,37 @@ This document walks through every file in the StockChat Django project, explaini
 2. [Directory Structure](#2-directory-structure)
 3. [Entry Points — manage.py, wsgi.py, asgi.py](#3-entry-points)
 4. [Configuration — settings.py and .env](#4-configuration)
-5. [URL Routing — StockChat/urls.py and Home/urls.py](#5-url-routing)
-6. [Models — Home/models.py](#6-models)
-7. [Forms — Home/forms.py](#7-forms)
-8. [Views — Home/views.py](#8-views)
-9. [Admin — Home/admin.py](#9-admin)
-10. [App Config — Home/apps.py](#10-app-config)
-11. [Migrations](#11-migrations)
-12. [Templates](#12-templates)
-13. [Tests — Home/tests.py](#13-tests)
-14. [Other Files — requirements.txt, .gitignore, .env](#14-other-files)
-15. [Request Lifecycle — How a Request Flows Through the App](#15-request-lifecycle)
+5. [URL Routing](#5-url-routing)
+6. [Home App — Core Pages & Auth](#6-home-app)
+7. [Portfolio App — Holdings Tracker](#7-portfolio-app)
+8. [Communities App — Reddit-Style Posts](#8-communities-app)
+9. [Friends App — Social Connections](#9-friends-app)
+10. [Chat App — Direct Messaging](#10-chat-app)
+11. [Market Data App — Placeholder](#11-market-data-app)
+12. [Templates & UI Architecture](#12-templates--ui-architecture)
+13. [Migrations](#13-migrations)
+14. [Request Lifecycle](#14-request-lifecycle)
 
 ---
 
 ## 1. Project Overview
 
-StockChat is a Django 5.2.7 web application that provides:
-- **User authentication** — signup, login, logout
-- **Portfolio tracking** — add stocks, view holdings, delete entries
-- **Contact form** — visitors can submit messages
-- **Static pages** — home (landing) and about
+StockChat is a Django 5.2.7 web application for stock market investors. It provides:
 
-The architecture is a single Django project (`StockChat`) with one app (`Home`) that contains all models, views, forms, and templates. It uses Django's built-in `User` model for authentication and SQLite as the database.
+- **User authentication** — signup, login, logout
+- **Portfolio tracking** — add stocks, view holdings, track invested amounts
+- **Communities** — Reddit-style posts with upvote/downvote and threaded comments
+- **Friends** — send/accept/decline friend requests, search users
+- **Chat** — real-time direct messaging between friends (AJAX polling)
+- **Contact form** — visitors can submit messages
+- **Static pages** — landing page and about
+
+The project follows a **multi-app architecture** where each feature is a separate Django app with its own models, views, forms, URLs, and templates.
 
 **Tech stack:**
 - Python 3.13, Django 5.2.7
-- Bootstrap 5.3.2 (via CDN) for the frontend
+- Bootstrap 5.3.2 + Bootstrap Icons (via CDN) for the frontend
+- Inter font family for professional financial UI
 - python-dotenv for environment variable management
 - SQLite (development database)
 
@@ -45,45 +49,67 @@ The architecture is a single Django project (`StockChat`) with one app (`Home`) 
 ## 2. Directory Structure
 
 ```
-StockChat/                          # Django project root (where manage.py lives)
-├── manage.py                       # CLI entry point for Django commands
-├── .env                            # Environment variables (SECRET_KEY, DEBUG)
-├── .gitignore                      # Files excluded from version control
-├── requirements.txt                # Python package dependencies
-├── db.sqlite3                      # SQLite database file (auto-created)
+StockChat/
+├── manage.py
+├── db.sqlite3
+├── requirements.txt
+├── .env
 │
-├── StockChat/                      # Project configuration package
-│   ├── __init__.py                 # Makes this directory a Python package
-│   ├── settings.py                 # All Django settings
-│   ├── urls.py                     # Root URL configuration
-│   ├── wsgi.py                     # WSGI entry point (production sync server)
-│   └── asgi.py                     # ASGI entry point (production async server)
+├── StockChat/                     # Project configuration
+│   ├── settings.py                # All Django settings
+│   ├── urls.py                    # Root URL config — includes all app URLs
+│   ├── wsgi.py
+│   └── asgi.py
 │
-├── Home/                           # The main (and only) Django app
-│   ├── __init__.py                 # Makes this directory a Python package
-│   ├── apps.py                     # App configuration class
-│   ├── models.py                   # Database models (Portfolio, Contact)
-│   ├── forms.py                    # Form classes (ContactForm, PortfolioAddForm)
-│   ├── views.py                    # View functions (all page logic)
-│   ├── urls.py                     # App-level URL patterns
-│   ├── admin.py                    # Django admin customization
-│   ├── tests.py                    # Automated test suite (31 tests)
-│   └── migrations/                 # Database migration files
-│       ├── __init__.py
-│       ├── 0001_initial.py         # Creates Contact model
-│       ├── 0002_portfolio.py       # Creates Portfolio model
-│       ├── 0003_add_ticker_to_portfolio.py  # Adds ticker field + data migration
-│       └── 0004_update_portfolio_constraint_and_related_name.py
+├── templates/
+│   └── base.html                  # Master layout (navbar, sidebar, footer)
 │
-└── templates/                      # HTML templates (project-level)
-    ├── base.html                   # Master layout (navbar, footer, CSS)
-    └── Home/
-        ├── home.html               # Landing page with hero banner
-        ├── about.html              # About page
-        ├── contact.html            # Contact form page
-        ├── signup.html             # Registration page
-        ├── login.html              # Login page
-        └── portfolio.html          # Portfolio dashboard
+├── Home/                          # Core: landing, about, contact, auth
+│   ├── models.py                  # Contact model
+│   ├── views.py                   # home, about, contact, signup, login, logout
+│   ├── forms.py                   # ContactForm
+│   ├── urls.py
+│   ├── admin.py
+│   └── templates/Home/            # home, about, contact, login, signup HTML
+│
+├── portfolio/                     # Portfolio tracker
+│   ├── models.py                  # Portfolio model (db_table='Home_portfolio')
+│   ├── views.py                   # portfolio_view, portfolio_delete
+│   ├── forms.py                   # PortfolioAddForm
+│   ├── urls.py
+│   ├── admin.py
+│   └── templates/portfolio/
+│
+├── communities/                   # Reddit-style posts
+│   ├── models.py                  # Post, Vote, Comment
+│   ├── views.py                   # post_list, post_create, post_detail, post_vote, post_comment, post_delete
+│   ├── forms.py                   # PostForm, CommentForm
+│   ├── urls.py
+│   ├── admin.py
+│   ├── templatetags/
+│   │   └── community_tags.py      # get_vote filter (dict lookup by post ID)
+│   └── templates/communities/     # post_list, post_create, post_detail HTML
+│
+├── friends/                       # Friend system
+│   ├── models.py                  # Friendship model (pending/accepted)
+│   ├── views.py                   # friends_list, search_users, send/accept/decline/cancel/unfriend
+│   ├── urls.py
+│   ├── admin.py
+│   ├── templatetags/
+│   │   └── friend_tags.py         # get_status filter (dict lookup by user ID)
+│   └── templates/friends/         # friends_list, search HTML
+│
+├── chat/                          # Direct messaging
+│   ├── models.py                  # Message model
+│   ├── views.py                   # inbox, conversation, send_message, poll_messages, unread_count
+│   ├── urls.py
+│   ├── admin.py
+│   └── templates/chat/            # inbox, conversation, not_friends HTML
+│
+└── market_data/                   # Placeholder for live market data
+    ├── views.py
+    ├── urls.py
+    └── templates/market_data/
 ```
 
 ---
@@ -92,65 +118,23 @@ StockChat/                          # Django project root (where manage.py lives
 
 ### `manage.py`
 
-```python
-#!/usr/bin/env python
-import os
-import sys
+Django's command-line interface. Every `python manage.py <command>` goes through this file.
 
-def main():
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'StockChat.settings')
-    try:
-        from django.core.management import execute_from_command_line
-    except ImportError as exc:
-        raise ImportError(
-            "Couldn't import Django. Are you sure it's installed and "
-            "available on your PYTHONPATH environment variable? Did you "
-            "forget to activate a virtual environment?"
-        ) from exc
-    execute_from_command_line(sys.argv)
+- `os.environ.setdefault(...)` sets `DJANGO_SETTINGS_MODULE` so Django knows which settings to load.
+- `execute_from_command_line(sys.argv)` dispatches to the appropriate management command.
 
-if __name__ == '__main__':
-    main()
-```
-
-**What it does:** This is Django's command-line interface. Every `python manage.py <command>` goes through this file.
-
-- `os.environ.setdefault(...)` — Sets the `DJANGO_SETTINGS_MODULE` environment variable to tell Django which settings file to use. `setdefault` means it only sets it if not already defined (so you can override it externally).
-- `execute_from_command_line(sys.argv)` — Parses CLI arguments (`runserver`, `migrate`, `test`, etc.) and dispatches to the appropriate Django management command.
-- The `try/except ImportError` block provides a helpful error message if Django isn't installed — common when you forget to activate your virtual environment.
-
-**Common commands run through this:**
+**Common commands:**
 ```bash
 python manage.py runserver       # Start dev server
 python manage.py migrate         # Apply database migrations
-python manage.py makemigrations  # Generate migration files from model changes
-python manage.py test Home       # Run the test suite
-python manage.py createsuperuser # Create an admin user
+python manage.py makemigrations  # Generate migrations from model changes
+python manage.py test            # Run tests
+python manage.py createsuperuser # Create admin user
 ```
 
-### `StockChat/wsgi.py`
+### `StockChat/wsgi.py` / `StockChat/asgi.py`
 
-```python
-import os
-from django.core.wsgi import get_wsgi_application
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'StockChat.settings')
-application = get_wsgi_application()
-```
-
-**What it does:** Exposes the WSGI (Web Server Gateway Interface) `application` object. This is the entry point for synchronous production servers like Gunicorn or uWSGI. The variable **must** be named `application` — that's the WSGI spec convention.
-
-WSGI is the standard Python protocol for web servers to communicate with web frameworks. When you deploy with `gunicorn StockChat.wsgi:application`, Gunicorn imports this file and calls `application` for every incoming HTTP request.
-
-### `StockChat/asgi.py`
-
-```python
-import os
-from django.core.asgi import get_asgi_application
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'StockChat.settings')
-application = get_asgi_application()
-```
-
-**What it does:** Same as WSGI but for ASGI (Asynchronous Server Gateway Interface). Used by async servers like Uvicorn or Daphne. Needed if you want WebSockets, HTTP/2, or async views. Currently the project uses standard synchronous views, so this file exists as a placeholder for future async support.
+Entry points for production servers. `wsgi.py` exposes the WSGI `application` object for synchronous servers (Gunicorn). `asgi.py` does the same for async servers (Daphne, Uvicorn).
 
 ---
 
@@ -158,952 +142,458 @@ application = get_asgi_application()
 
 ### `StockChat/settings.py`
 
-This is the central configuration file. Every Django setting is defined here. Let's walk through each section:
+#### Key Settings
 
-#### Environment Setup
-
-```python
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
-```
-
-- `BASE_DIR` — Resolves to the `StockChat/` directory (where `manage.py` lives). `Path(__file__)` is this settings file, `.resolve()` makes it absolute, `.parent.parent` goes up two directories (from `StockChat/StockChat/settings.py` to `StockChat/`).
-- `load_dotenv(...)` — Reads the `.env` file and loads its key-value pairs into `os.environ`. This is provided by the `python-dotenv` package. It allows you to keep secrets out of source code.
-
-#### Security Settings
-
-```python
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-change-me-in-production")
-DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
-ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if h.strip()
-]
-```
-
-- `SECRET_KEY` — A cryptographic secret used for signing cookies, CSRF tokens, password reset tokens, and sessions. **Must be unique and unpredictable in production.** Read from the environment so it's never hardcoded in source code.
-- `DEBUG` — When `True`, Django shows detailed error pages with stack traces. **Must be `False` in production** for security. The expression converts string values like `"True"`, `"1"`, `"yes"` to a boolean.
-- `ALLOWED_HOSTS` — A list of hostnames the server will respond to. Prevents HTTP Host header attacks. Parsed from a comma-separated environment variable (e.g., `"mysite.com,www.mysite.com"`). The list comprehension strips whitespace and filters empty strings.
+- **`SECRET_KEY`** — Cryptographic secret read from `.env`. Used for signing sessions, CSRF tokens, etc.
+- **`DEBUG`** — Parsed from env var. Shows detailed error pages when `True`. Must be `False` in production.
+- **`ALLOWED_HOSTS`** — Comma-separated hostnames from env var. Prevents HTTP Host header attacks.
 
 #### Installed Apps
 
 ```python
 INSTALLED_APPS = [
-    'django.contrib.admin',          # Built-in admin interface
-    'django.contrib.auth',           # Authentication system (User model, login, permissions)
-    'django.contrib.contenttypes',   # Tracks models across apps (used by auth)
-    'django.contrib.sessions',       # Server-side session storage
-    'django.contrib.messages',       # Flash messages (success/error notifications)
-    'django.contrib.staticfiles',    # Serves CSS/JS/images in development
-    'Home',                          # Our custom app
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'Home',
+    'portfolio',
+    'communities',
+    'market_data',
+    'friends',
+    'chat',
 ]
 ```
 
-Each entry tells Django to include that app — it discovers models, migrations, admin registrations, template tags, etc. The order matters: `contenttypes` must come before `auth` because auth depends on it.
+Each app is discovered by Django for models, migrations, admin registrations, template tags, and templates.
 
-#### Middleware
+#### Middleware Pipeline
 
-```python
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',      # HTTPS redirects, HSTS headers
-    'django.contrib.sessions.middleware.SessionMiddleware', # Reads/writes session cookies
-    'django.middleware.common.CommonMiddleware',           # URL normalization (trailing slashes)
-    'django.middleware.csrf.CsrfViewMiddleware',          # CSRF token validation on POST
-    'django.contrib.auth.middleware.AuthenticationMiddleware', # Attaches request.user
-    'django.contrib.messages.middleware.MessageMiddleware',    # Enables flash messages
-    'django.middleware.clickjacking.XFrameOptionsMiddleware', # Sets X-Frame-Options header
-]
-```
+Middleware processes every request/response. Order matters:
 
-Middleware is a pipeline — every request passes through each middleware top-to-bottom, and every response passes back bottom-to-top. Order matters:
-- `SessionMiddleware` must come before `AuthenticationMiddleware` (auth reads from the session).
-- `CsrfViewMiddleware` must come before any view that processes POST forms.
+1. `SecurityMiddleware` — HTTPS redirects, security headers
+2. `SessionMiddleware` — Reads/writes session cookies
+3. `CommonMiddleware` — URL normalization (trailing slashes)
+4. `CsrfViewMiddleware` — CSRF token validation on POST
+5. `AuthenticationMiddleware` — Sets `request.user`
+6. `MessageMiddleware` — Flash messages
+7. `XFrameOptionsMiddleware` — Clickjacking protection
 
 #### Templates
 
 ```python
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],   # Project-level templates directory
-        'APP_DIRS': True,                     # Also look in each app's templates/ folder
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',  # Adds `request` to templates
-                'django.contrib.auth.context_processors.auth',  # Adds `user` and `perms`
-                'django.contrib.messages.context_processors.messages', # Adds `messages`
-            ],
-        },
-    },
-]
+'DIRS': [BASE_DIR / 'templates'],  # Project-level (base.html lives here)
+'APP_DIRS': True,                   # Also searches <app>/templates/
 ```
 
-- `DIRS` — Explicit directories to search for templates. Our templates live at `StockChat/templates/`.
-- `APP_DIRS: True` — Also searches `<app>/templates/` in each installed app.
-- **Context processors** automatically inject variables into every template context. That's why `{{ user }}` and `{{ messages }}` are available in every template without the view explicitly passing them.
+Context processors automatically inject `request`, `user`, `messages` into every template.
 
-#### Database
+#### Auth Settings
 
 ```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-```
-
-SQLite — a file-based database. Perfect for development. The file `db.sqlite3` is auto-created on first migration. For production you'd typically switch to PostgreSQL.
-
-#### Password Validators
-
-```python
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
-```
-
-These run when a user creates an account or changes their password:
-1. **UserAttributeSimilarityValidator** — Rejects passwords too similar to username/email
-2. **MinimumLengthValidator** — Requires at least 8 characters (default)
-3. **CommonPasswordValidator** — Rejects 20,000 most common passwords (e.g., "password123")
-4. **NumericPasswordValidator** — Rejects all-numeric passwords
-
-#### Static Files and Auth
-
-```python
-STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'home'
 ```
 
-- `STATIC_URL` — URL prefix for static files (CSS/JS). In templates: `{% static 'file.css' %}` resolves to `/static/file.css`.
-- `STATIC_ROOT` — Where `collectstatic` copies files for production serving.
-- `DEFAULT_AUTO_FIELD` — All auto-created primary keys use `BigAutoField` (64-bit integers) instead of the older `AutoField` (32-bit).
-- `LOGIN_URL` — Where `@login_required` redirects unauthenticated users. `'login'` is the **URL name**, not a path.
-- `LOGIN_REDIRECT_URL` / `LOGOUT_REDIRECT_URL` — Where to redirect after login/logout (used by Django's built-in auth views; our custom views handle their own redirects).
-
-### `.env`
-
-```
-SECRET_KEY=django-insecure-*2ar_=(__8k_k5j!u%kg51@=mxl5$gg4$k*_6y5v&22c$j5acb
-DEBUG=True
-```
-
-This file stores environment-specific configuration. `load_dotenv()` in `settings.py` reads it. This file is listed in `.gitignore` so it's never committed to version control. In production, you'd set these as real environment variables on the server instead.
+`LOGIN_URL` is where `@login_required` redirects unauthenticated users.
 
 ---
 
 ## 5. URL Routing
 
-Django uses a two-level URL configuration:
-
-### `StockChat/urls.py` (Root URL Config)
+### Root URL Config (`StockChat/urls.py`)
 
 ```python
-from django.contrib import admin
-from django.urls import include, path
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('Home.urls')),
+    path('portfolio/', include('portfolio.urls')),
+    path('communities/', include('communities.urls')),
+    path('market-data/', include('market_data.urls')),
+    path('friends/', include('friends.urls')),
+    path('chat/', include('chat.urls')),
 ]
 ```
 
-- `path('admin/', admin.site.urls)` — All URLs starting with `/admin/` go to Django's built-in admin interface.
-- `path('', include('Home.urls'))` — Everything else is delegated to `Home/urls.py`. The empty string `''` means no prefix — the Home app's URLs are mounted at the root.
+Each app is mounted at its own URL prefix. `include()` delegates URL resolution to the app's own `urls.py`.
 
-`include()` is a key Django pattern: it lets each app define its own URL patterns, then the root config wires them together. This keeps URL definitions close to the views they reference.
+### Complete URL Map
 
-### `Home/urls.py` (App URL Config)
-
-```python
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path('', views.home, name='home'),
-    path('about/', views.about, name='about'),
-    path('contact/', views.contact, name='contact'),
-    path('signup/', views.signup_view, name='signup'),
-    path('login/', views.login_view, name='login'),
-    path('logout/', views.logout_view, name='logout'),
-    path('portfolio/', views.portfolio_view, name='portfolio'),
-    path('portfolio/delete/<int:pk>/', views.portfolio_delete, name='portfolio_delete'),
-]
-```
-
-Each `path()` maps a URL pattern to a view function:
-- **First argument** — The URL pattern. `''` matches the root URL (`/`). `'about/'` matches `/about/`.
-- **Second argument** — The view function to call when this URL is requested.
-- **`name`** — A symbolic name used throughout the codebase for reverse URL resolution. In templates: `{% url 'home' %}` produces `/`. In Python: `reverse('home')` produces `/`.
-- **`<int:pk>`** — A URL path converter. Captures the integer from the URL (e.g., `/portfolio/delete/42/` captures `pk=42`) and passes it as a keyword argument to the view function. `int:` ensures only numeric values match.
-
-**Complete URL table:**
-
-| URL | View | HTTP Methods | Auth Required |
-|-----|------|-------------|---------------|
-| `/` | `home` | GET | No |
-| `/about/` | `about` | GET | No |
-| `/contact/` | `contact` | GET, POST | No |
-| `/signup/` | `signup_view` | GET, POST | No |
-| `/login/` | `login_view` | GET, POST | No |
-| `/logout/` | `logout_view` | POST only | No |
-| `/portfolio/` | `portfolio_view` | GET, POST | Yes |
-| `/portfolio/delete/<pk>/` | `portfolio_delete` | POST only | Yes |
+| URL | App | View | Method | Auth |
+|-----|-----|------|--------|------|
+| `/` | Home | `home` | GET | No |
+| `/about/` | Home | `about` | GET | No |
+| `/contact/` | Home | `contact` | GET, POST | No |
+| `/signup/` | Home | `signup_view` | GET, POST | No |
+| `/login/` | Home | `login_view` | GET, POST | No |
+| `/logout/` | Home | `logout_view` | POST | No |
+| `/portfolio/` | portfolio | `portfolio_view` | GET, POST | Yes |
+| `/portfolio/delete/<pk>/` | portfolio | `portfolio_delete` | POST | Yes |
+| `/communities/` | communities | `post_list` | GET | Yes |
+| `/communities/new/` | communities | `post_create` | GET, POST | Yes |
+| `/communities/<pk>/` | communities | `post_detail` | GET | Yes |
+| `/communities/<pk>/vote/` | communities | `post_vote` | POST | Yes |
+| `/communities/<pk>/comment/` | communities | `post_comment` | POST | Yes |
+| `/communities/<pk>/delete/` | communities | `post_delete` | POST | Yes |
+| `/friends/` | friends | `friends_list` | GET | Yes |
+| `/friends/search/` | friends | `search_users` | GET | Yes |
+| `/friends/request/<id>/` | friends | `send_request` | POST | Yes |
+| `/friends/accept/<pk>/` | friends | `accept_request` | POST | Yes |
+| `/friends/decline/<pk>/` | friends | `decline_request` | POST | Yes |
+| `/friends/cancel/<pk>/` | friends | `cancel_request` | POST | Yes |
+| `/friends/unfriend/<id>/` | friends | `unfriend` | POST | Yes |
+| `/chat/` | chat | `inbox` | GET | Yes |
+| `/chat/<user_id>/` | chat | `conversation` | GET | Yes |
+| `/chat/<user_id>/send/` | chat | `send_message` | POST | Yes |
+| `/chat/<user_id>/poll/` | chat | `poll_messages` | GET | Yes |
+| `/chat/unread/` | chat | `unread_count` | GET | Yes |
+| `/market-data/` | market_data | `market_data_view` | GET | Yes |
 
 ---
 
-## 6. Models
+## 6. Home App — Core Pages & Auth
 
-### `Home/models.py`
+### Models (`Home/models.py`)
 
-Models define the database schema. Each model class becomes a database table. Each class attribute becomes a column.
-
-#### Portfolio Model
-
-```python
-class Portfolio(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='portfolios')
-    ticker = models.CharField(max_length=20, default='UNKNOWN')
-    stock_name = models.CharField(max_length=100)
-    quantity = models.PositiveIntegerField()
-    invested = models.DecimalField(max_digits=12, decimal_places=2)
-    added_at = models.DateTimeField(auto_now_add=True)
-```
-
-**Fields explained:**
-
-- `user` — A **ForeignKey** (many-to-one relationship) to Django's built-in `User` model. Each portfolio entry belongs to one user; each user can have many entries.
-  - `on_delete=models.CASCADE` — If the user is deleted, all their portfolio entries are automatically deleted too.
-  - `related_name='portfolios'` — Allows reverse access: `some_user.portfolios.all()` returns all portfolio entries for that user.
-
-- `ticker` — The stock symbol (e.g., "AAPL", "GOOG"). `max_length=20` sets the database column to `VARCHAR(20)`. `default='UNKNOWN'` exists for the data migration that backfilled this field.
-
-- `stock_name` — Human-readable company name (e.g., "Apple Inc.").
-
-- `quantity` — Number of shares held. `PositiveIntegerField` enforces `>= 0` at the database level.
-
-- `invested` — Total money invested. `DecimalField` is used instead of `FloatField` because **floating-point arithmetic introduces rounding errors with money**. `max_digits=12` allows values up to 9,999,999,999.99. `decimal_places=2` stores cents precision.
-
-- `added_at` — Timestamp of when the entry was first created. `auto_now_add=True` means Django automatically sets this to the current time on creation and the field is not editable afterward.
-
-```python
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "ticker"],
-                name="unique_user_ticker",
-            ),
-        ]
-```
-
-**Meta.constraints** — Defines database-level constraints. This `UniqueConstraint` ensures that a user can only have **one entry per ticker symbol**. If user #1 already has an "AAPL" entry, trying to create another "AAPL" for user #1 raises an `IntegrityError`. User #2 can still have their own "AAPL" entry.
-
-This uses the modern `UniqueConstraint` API (Django 2.2+) instead of the older `unique_together` which is deprecated in Django 5.x.
-
-```python
-    def __str__(self):
-        return f"{self.user.username} — {self.ticker} x{self.quantity}"
-```
-
-**`__str__`** — Python's string representation. Used in the admin interface, shell, and anywhere you print a Portfolio object. Example: `"trader — AAPL x10"`.
-
-```python
-    @property
-    def avg_price(self):
-        if self.quantity > 0:
-            return round(self.invested / self.quantity, 2)
-        return 0
-```
-
-**`avg_price`** — A computed property (not stored in the database). Divides total invested by quantity to get the average cost per share. The `@property` decorator lets you access it like an attribute (`holding.avg_price`) instead of calling it as a method (`holding.avg_price()`). The guard `if self.quantity > 0` prevents `ZeroDivisionError`.
-
-#### Contact Model
-
-```python
-class Contact(models.Model):
-    name = models.CharField(max_length=100)
-    email = models.EmailField()
-    phone = models.CharField(max_length=15)
-    content = models.TextField()
-    dob = models.DateField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-```
+#### Contact
 
 Stores contact form submissions.
 
-- `EmailField` — A `CharField` that validates email format.
-- `TextField` — Unlimited-length text (maps to `TEXT` in SQL).
-- `blank=True, null=True` on `dob` — `blank=True` means the field is optional in forms; `null=True` means the database stores `NULL` when no value is provided. Both are needed for optional fields.
+| Field | Type | Notes |
+|-------|------|-------|
+| `name` | CharField(100) | |
+| `email` | EmailField | Validates email format |
+| `phone` | CharField(15) | |
+| `content` | TextField | Unlimited-length message |
+| `dob` | DateField | Optional (`blank=True, null=True`) |
+| `created_at` | DateTimeField | `auto_now_add=True` |
 
-```python
-    def __str__(self):
-        return f"{self.name} — {self.email}"
-```
+### Forms (`Home/forms.py`)
 
----
+**`ContactForm`** — A `ModelForm` generated from the Contact model. Overrides widgets to add Bootstrap classes. Custom `clean_*` methods validate minimum lengths for name (3), phone (10), and content (3).
 
-## 7. Forms
+### Views (`Home/views.py`)
 
-### `Home/forms.py`
-
-Django forms handle data validation, cleaning, and HTML rendering. They sit between the raw HTTP request and the database.
-
-#### ContactForm
-
-```python
-class ContactForm(forms.ModelForm):
-    class Meta:
-        model = Contact
-        fields = ["name", "email", "phone", "content", "dob"]
-        widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
-            "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "phone": forms.TextInput(attrs={"class": "form-control"}),
-            "content": forms.Textarea(attrs={"class": "form-control", "rows": 5}),
-            "dob": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-        }
-```
-
-**`ModelForm`** — A form that is automatically generated from a model. It knows the field types, max lengths, and required/optional status from the model definition. `fields` specifies which model fields to include in the form.
-
-**`widgets`** — Overrides the default HTML widgets. `attrs={"class": "form-control"}` adds Bootstrap's CSS class to each input element for consistent styling. `"type": "date"` on the DOB field tells the browser to show a date picker.
-
-```python
-    def clean_name(self):
-        name = self.cleaned_data["name"]
-        if len(name) < 3:
-            raise forms.ValidationError("Name must be at least 3 characters.")
-        return name
-```
-
-**`clean_<fieldname>`** methods — Django's per-field validation hook. After Django's built-in validation runs (type checking, max_length, etc.), it calls `clean_name()` for the `name` field. If validation fails, raise `ValidationError`. The returned value becomes the cleaned data. There are similar validators for `phone` (min 10 chars) and `content` (min 3 chars).
-
-#### PortfolioAddForm
-
-```python
-class PortfolioAddForm(forms.Form):
-    ticker = forms.CharField(max_length=20)
-    stock_name = forms.CharField(max_length=100)
-    quantity = forms.IntegerField(min_value=1)
-    invested = forms.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
-```
-
-**`forms.Form`** (not `ModelForm`) — A plain form not tied to a model. Used here because the portfolio view does custom logic (update-or-create), so we don't want `form.save()` to just create a model instance blindly.
-
-- `IntegerField(min_value=1)` — Ensures quantity is at least 1. Django handles the validation automatically.
-- `DecimalField(min_value=Decimal("0.01"))` — Ensures invested amount is positive. Uses `Decimal` (not `float`) to avoid floating-point rounding errors with money.
-
-```python
-    def clean_ticker(self):
-        return self.cleaned_data["ticker"].strip().upper()
-
-    def clean_stock_name(self):
-        return self.cleaned_data["stock_name"].strip()
-```
-
-These normalizers clean user input: trim whitespace and uppercase the ticker so "aapl" becomes "AAPL". This ensures consistent storage and prevents duplicate entries that differ only in case.
+- **`home`** / **`about`** — Simple template renders.
+- **`contact`** — Standard Django form pattern: GET shows empty form, POST validates and saves, redirects on success (PRG pattern).
+- **`signup_view`** — Uses Django's `UserCreationForm`. Creates user and immediately logs them in with `login(request, user)`.
+- **`login_view`** — Uses `AuthenticationForm`. Honors `?next=` parameter with **open redirect protection** via `url_has_allowed_host_and_scheme()`.
+- **`logout_view`** — `@require_POST` to prevent CSRF logout attacks via `<img src="/logout/">`.
 
 ---
 
-## 8. Views
+## 7. Portfolio App — Holdings Tracker
 
-### `Home/views.py`
+### Model (`portfolio/models.py`)
 
-Views are functions that receive an HTTP request and return an HTTP response. Every URL maps to a view.
+#### Portfolio
 
-#### Static Pages
+| Field | Type | Notes |
+|-------|------|-------|
+| `user` | ForeignKey(User) | `CASCADE` delete, `related_name='portfolios'` |
+| `ticker` | CharField(20) | Stock symbol (e.g., "AAPL") |
+| `stock_name` | CharField(100) | Company name |
+| `quantity` | PositiveIntegerField | Number of shares |
+| `invested` | DecimalField(12,2) | Total invested amount. `DecimalField` avoids float rounding errors with money |
+| `added_at` | DateTimeField | `auto_now_add=True` |
 
-```python
-def home(request):
-    return render(request, "Home/home.html")
+- **`UniqueConstraint(fields=['user', 'ticker'])`** — One entry per ticker per user.
+- **`db_table = 'Home_portfolio'`** — Points to the original table from when this model lived in the Home app. Avoids data loss during the app migration.
+- **`avg_price` property** — Computed: `invested / quantity`. Guards against `ZeroDivisionError`.
 
-def about(request):
-    return render(request, "Home/about.html")
-```
+### Views (`portfolio/views.py`)
 
-`render(request, template_name)` — Loads the template, renders it with the default context (which includes `user`, `messages`, `request` via context processors), and returns an `HttpResponse` with the rendered HTML.
+**`portfolio_view`** (GET + POST):
 
-#### Contact View
-
-```python
-def contact(request):
-    if request.method == "POST":
-        form = ContactForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Your form has been sent!")
-            return redirect("contact")
-        else:
-            messages.warning(request, "Please correct the errors below.")
-    else:
-        form = ContactForm()
-    return render(request, "Home/contact.html", {"form": form})
-```
-
-This follows Django's standard **form handling pattern**:
-
-1. **GET request** — Create an empty form and display it.
-2. **POST request** — Bind the form to the submitted data (`request.POST`).
-3. **Validation** — `form.is_valid()` runs all field validators and `clean_*` methods.
-4. **Valid** — `form.save()` creates a `Contact` object in the database (since `ContactForm` is a `ModelForm`). Then redirect (PRG pattern — Post/Redirect/Get) to prevent duplicate submissions on browser refresh.
-5. **Invalid** — Re-render the form with error messages attached. The form remembers the submitted values so the user doesn't lose their input.
-
-`messages.success(request, ...)` — Stores a flash message in the session. It's displayed once on the next page load (in `base.html`'s messages block) and then automatically cleared.
-
-#### Signup View
+POST uses an **update-or-create pattern**:
 
 ```python
-def signup_view(request):
-    if request.user.is_authenticated:
-        return redirect("home")
-    if request.method == "POST":
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, "Account created successfully!")
-            return redirect("home")
-    else:
-        form = UserCreationForm()
-    return render(request, "Home/signup.html", {"form": form})
+updated = Portfolio.objects.filter(user=request.user, ticker=ticker).update(
+    quantity=F("quantity") + quantity,
+    invested=F("invested") + invested,
+)
+if not updated:
+    Portfolio.objects.create(...)
 ```
 
-- `request.user.is_authenticated` — If the user is already logged in, redirect them away from the signup page. `request.user` is set by `AuthenticationMiddleware` — it's either a real `User` object or `AnonymousUser`.
-- `UserCreationForm` — Django's built-in form with `username`, `password1`, `password2` fields. It handles password strength validation and ensures the two passwords match.
-- `form.save()` — Creates the `User` in the database and hashes the password.
-- `login(request, user)` — Immediately logs in the newly created user by creating a session.
+**`F()` expressions** generate SQL that operates on column values directly in the database, preventing race conditions when concurrent requests update the same row.
 
-#### Login View
+GET uses **`aggregate(Sum(...))`** to compute totals in a single SQL query rather than loading all rows into Python.
 
-```python
-def login_view(request):
-    if request.user.is_authenticated:
-        return redirect("home")
-    if request.method == "POST":
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            messages.success(request, f"Welcome back, {user.username}!")
-            next_url = request.POST.get("next", request.GET.get("next", ""))
-            if next_url and url_has_allowed_host_and_scheme(
-                next_url, allowed_hosts={request.get_host()}
-            ):
-                return redirect(next_url)
-            return redirect("home")
-    else:
-        form = AuthenticationForm()
-    return render(request, "Home/login.html", {"form": form})
-```
-
-- `AuthenticationForm` — Django's built-in form that validates username+password against the database. If valid, `form.get_user()` returns the authenticated `User` object.
-- **Open redirect protection** — When `@login_required` redirects to `/login/?next=/portfolio/`, we want to honor that `next` parameter after login. But an attacker could craft `?next=https://evil.com` to phish users. `url_has_allowed_host_and_scheme()` checks that:
-  1. The URL's host matches our server (`request.get_host()`)
-  2. The scheme is safe (http/https)
-  If the URL fails validation, we fall through to the default `redirect("home")`.
-- `request.POST.get("next", request.GET.get("next", ""))` — The `next` value can come from either a hidden form field (POST) or the URL query string (GET). The POST value takes priority.
-
-#### Logout View
-
-```python
-@require_POST
-def logout_view(request):
-    logout(request)
-    messages.success(request, "You have been logged out.")
-    return redirect("home")
-```
-
-- `@require_POST` — A Django decorator that returns HTTP 405 (Method Not Allowed) for any non-POST request. This prevents CSRF logout attacks — without this, an attacker could embed `<img src="/logout/">` on any page to force-logout users.
-- `logout(request)` — Destroys the session and clears `request.user`.
-
-#### Portfolio View
-
-```python
-@login_required
-def portfolio_view(request):
-    if request.method == "POST":
-        form = PortfolioAddForm(request.POST)
-        if form.is_valid():
-            ticker = form.cleaned_data["ticker"]
-            stock_name = form.cleaned_data["stock_name"]
-            quantity = form.cleaned_data["quantity"]
-            invested = form.cleaned_data["invested"]
-
-            updated = Portfolio.objects.filter(
-                user=request.user, ticker=ticker
-            ).update(
-                quantity=F("quantity") + quantity,
-                invested=F("invested") + invested,
-            )
-            if updated:
-                messages.success(request, f"{ticker} updated — added {quantity} more shares.")
-            else:
-                Portfolio.objects.create(
-                    user=request.user,
-                    ticker=ticker,
-                    stock_name=stock_name,
-                    quantity=quantity,
-                    invested=invested,
-                )
-                messages.success(request, f"{ticker} added to your portfolio!")
-        else:
-            messages.warning(request, "Please enter valid data for all fields.")
-        return redirect("portfolio")
-
-    holdings = Portfolio.objects.filter(user=request.user).order_by("ticker")
-    totals = holdings.aggregate(
-        total_invested=Sum("invested"),
-        total_shares=Sum("quantity"),
-    )
-    return render(request, "Home/portfolio.html", {
-        "holdings": holdings,
-        "total_invested": totals["total_invested"] or 0,
-        "total_shares": totals["total_shares"] or 0,
-    })
-```
-
-**`@login_required`** — Redirects to `LOGIN_URL` (i.e., `/login/`) if the user isn't authenticated. Appends `?next=/portfolio/` so the login view can redirect back after authentication.
-
-**POST handling (adding a stock):**
-
-The update-or-create logic works in two steps:
-
-1. **Try to update** — `Portfolio.objects.filter(user=..., ticker=...).update(...)` issues a single SQL `UPDATE` statement. It returns the number of rows affected (0 or 1).
-2. **If no rows updated, create** — The ticker doesn't exist for this user yet, so create a new entry.
-
-**`F("quantity") + quantity`** — `F()` expressions generate SQL that operates on the column value directly in the database, rather than reading the value into Python, modifying it, and writing it back. This prevents race conditions: if two requests try to add shares simultaneously, both updates are applied atomically at the database level. Without `F()`, one update could overwrite the other.
-
-**GET handling (displaying the portfolio):**
-
-- `holdings.aggregate(...)` — Executes a SQL `SELECT SUM(invested), SUM(quantity)` query in the database. Much more efficient than loading all rows into Python and summing in a loop. Returns a dictionary like `{"total_invested": Decimal("4000.00"), "total_shares": 15}`.
-- `or 0` — If there are no holdings, `Sum()` returns `None`. The `or 0` provides a sensible default.
-
-#### Portfolio Delete View
-
-```python
-@login_required
-@require_POST
-def portfolio_delete(request, pk):
-    holding = get_object_or_404(Portfolio, pk=pk, user=request.user)
-    ticker = holding.ticker
-    holding.delete()
-    messages.success(request, f"{ticker} removed from portfolio.")
-    return redirect("portfolio")
-```
-
-- **Stacked decorators** — `@login_required` runs first (outermost), then `@require_POST`. If the user isn't logged in, they get redirected before the POST check even runs.
-- `get_object_or_404(Portfolio, pk=pk, user=request.user)` — Fetches the object or returns HTTP 404. The `user=request.user` filter is critical for security: it ensures users can only delete **their own** entries. Without it, any logged-in user could delete anyone's holdings by guessing PKs.
-- `holding.delete()` — Removes the row from the database.
+**`portfolio_delete`** — Uses `get_object_or_404(Portfolio, pk=pk, user=request.user)` to ensure users can only delete their own holdings.
 
 ---
 
-## 9. Admin
+## 8. Communities App — Reddit-Style Posts
 
-### `Home/admin.py`
+### Models (`communities/models.py`)
 
-```python
-from django.contrib import admin
-from .models import Contact, Portfolio
+#### Post
 
-@admin.register(Portfolio)
-class PortfolioAdmin(admin.ModelAdmin):
-    list_display = ('user', 'ticker', 'stock_name', 'quantity', 'invested', 'added_at')
-    search_fields = ('ticker', 'stock_name', 'user__username')
-    list_filter = ('added_at', 'user')
+| Field | Type | Notes |
+|-------|------|-------|
+| `author` | ForeignKey(User) | |
+| `title` | CharField(300) | |
+| `body` | TextField | |
+| `created_at` | DateTimeField | `auto_now_add=True` |
+| `updated_at` | DateTimeField | `auto_now=True` |
 
-@admin.register(Contact)
-class ContactAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone', 'created_at')
-    search_fields = ('name', 'email')
-    list_filter = ('created_at',)
-```
+- `score` property — Computes `upvotes - downvotes` from related Vote objects.
+- `comment_count` property — Counts related Comment objects.
+- Default ordering: `-created_at` (newest first).
 
-**`@admin.register(Model)`** — Registers the model with Django's admin site. Equivalent to `admin.site.register(Portfolio, PortfolioAdmin)`.
+#### Vote
 
-**`ModelAdmin` options:**
-- `list_display` — Columns shown in the admin list view. By default Django only shows `__str__()`.
-- `search_fields` — Adds a search box. `user__username` uses Django's double-underscore syntax to search across the ForeignKey relationship (search by the related user's username).
-- `list_filter` — Adds filter sidebar. Click a user or date to filter the list.
+| Field | Type | Notes |
+|-------|------|-------|
+| `user` | ForeignKey(User) | |
+| `post` | ForeignKey(Post) | `related_name='votes'` |
+| `value` | SmallIntegerField | `1` (upvote) or `-1` (downvote) |
 
-Access the admin at `/admin/` after creating a superuser with `python manage.py createsuperuser`.
+- **`UniqueConstraint(fields=['user', 'post'])`** — One vote per user per post.
 
----
+#### Comment
 
-## 10. App Config
+| Field | Type | Notes |
+|-------|------|-------|
+| `author` | ForeignKey(User) | |
+| `post` | ForeignKey(Post) | `related_name='comments'` |
+| `parent` | ForeignKey('self') | Nullable. Enables one level of reply threading. |
+| `body` | TextField | |
+| `created_at` | DateTimeField | |
 
-### `Home/apps.py`
+### Views (`communities/views.py`)
 
-```python
-from django.apps import AppConfig
+- **`post_list`** — Annotates posts with `net_score` (via `Sum('votes__value')`) and `num_comments`. Supports sort by `new` or `top`. Fetches user's votes in a single query for highlighting.
 
-class HomeConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'Home'
-```
+- **`post_vote`** — Toggle logic:
+  - First vote: creates Vote
+  - Same vote again: deletes (un-vote)
+  - Opposite vote: switches
+  - Returns JSON for AJAX callers, or redirects for standard form submissions.
 
-Every Django app has a configuration class. Django discovers it automatically when `'Home'` is in `INSTALLED_APPS`.
+- **`post_comment`** — Accepts optional `parent` field for reply threading.
 
-- `default_auto_field` — Sets the default primary key type for models in this app to `BigAutoField` (64-bit integer). This matches the project-level `DEFAULT_AUTO_FIELD` setting.
-- `name = 'Home'` — The Python import path of the app. Must match the directory name exactly.
+- **`post_delete`** — Only the post author can delete (`author=request.user`).
 
----
+### Template Tags (`communities/templatetags/community_tags.py`)
 
-## 11. Migrations
-
-Migrations are Django's way of evolving the database schema over time. Each migration file is a Python script that describes a set of database operations.
-
-### `0001_initial.py` — Creates Contact Table
-
-```python
-operations = [
-    migrations.CreateModel(
-        name="Contact",
-        fields=[
-            ("id", models.BigAutoField(auto_created=True, primary_key=True, ...)),
-            ("name", models.CharField(max_length=100)),
-            ("email", models.EmailField(max_length=254)),
-            ("phone", models.CharField(max_length=15)),
-            ("content", models.TextField()),
-            ("dob", models.DateField(blank=True, null=True)),
-            ("created_at", models.DateTimeField(auto_now_add=True)),
-        ],
-    ),
-]
-```
-
-Creates the `Home_contact` table with all its columns. The `id` field is auto-created by Django as the primary key.
-
-### `0002_portfolio.py` — Creates Portfolio Table
-
-Creates `Home_portfolio` with `stock_name`, `quantity`, `invested`, `added_at`, and a `user_id` foreign key to `auth_user`.
-
-`dependencies` lists what must run first:
-- `("Home", "0001_initial")` — The Contact migration
-- `migrations.swappable_dependency(settings.AUTH_USER_MODEL)` — Ensures the User table exists (since Portfolio has a FK to it)
-
-### `0003_add_ticker_to_portfolio.py` — Adds Ticker Field + Data Migration
-
-This is a three-step migration:
-
-```python
-operations = [
-    # Step 1: Add the column with a temporary default
-    migrations.AddField(
-        model_name='portfolio',
-        name='ticker',
-        field=models.CharField(default='UNKNOWN', max_length=20),
-        preserve_default=False,
-    ),
-    # Step 2: Data migration — populate ticker from stock_name and merge duplicates
-    migrations.RunPython(populate_ticker_and_merge, migrations.RunPython.noop),
-    # Step 3: Add unique constraint
-    migrations.AlterUniqueTogether(
-        name='portfolio',
-        unique_together={('user', 'ticker')},
-    ),
-]
-```
-
-**`RunPython`** — Runs arbitrary Python code during migration. The `populate_ticker_and_merge` function:
-1. Sets each row's `ticker` to its `stock_name` uppercased with spaces removed
-2. Merges duplicate (user, ticker) pairs by summing their quantity and invested values
-
-`migrations.RunPython.noop` is the reverse operation — it does nothing, meaning this migration can't be cleanly reversed.
-
-`preserve_default=False` tells Django: "The default='UNKNOWN' is only for this migration (to populate existing rows), not a permanent model default."
-
-### `0004_update_portfolio_constraint_and_related_name.py`
-
-Modernizes the schema:
-1. Removes the old `unique_together` constraint
-2. Updates the `ticker` field definition
-3. Changes `related_name` from `'portfolio'` to `'portfolios'`
-4. Adds the new-style `UniqueConstraint`
-
----
-
-## 12. Templates
-
-Templates use Django's template language (DTL) with Bootstrap 5 for styling.
-
-### `base.html` — Master Layout
-
-Every other template **extends** this one. It defines the overall page structure:
-
-```
-┌─────────────────────────────────────┐
-│ <nav> — Navbar                      │
-├─────────────────────────────────────┤
-│ {% block pre_content %}             │  ← Page headers go here
-├─────────────────────────────────────┤
-│ {% if messages %} ... alerts ...    │  ← Flash messages
-├─────────────────────────────────────┤
-│ {% block content %}                 │  ← Main page content
-├─────────────────────────────────────┤
-│ <footer>                            │
-└─────────────────────────────────────┘
-```
-
-**Key template features:**
-
-- **`{% block name %}...{% endblock %}`** — Defines overridable regions. Child templates fill these blocks.
-- **`{% url 'name' %}`** — Reverse URL resolution. Generates the URL from its name, so URLs are never hardcoded in HTML.
-- **`{% if user.is_authenticated %}`** — Conditional rendering. Shows different nav items for logged-in vs anonymous users.
-- **`{% csrf_token %}`** — Inserts a hidden CSRF token in forms. Django's CSRF middleware rejects POST requests without a valid token.
-- **`{{ message.tags }}`** — Outputs the message level as a CSS class (e.g., `success`, `warning`). Bootstrap maps `alert-success` to green, `alert-warning` to yellow.
-
-**Sticky footer CSS:**
-
-```css
-html { height: 100%; }
-body { min-height: 100%; display: flex; flex-direction: column; }
-main { flex: 1 0 auto; }
-footer { flex-shrink: 0; }
-```
-
-Makes the body a flex column that stretches to fill the viewport. `main` grows to fill available space (`flex: 1`), pushing the footer to the bottom even when content is short.
-
-**Design system classes:**
-- `.hero` — Full-viewport banner with background image and gradient overlay (home page only)
-- `.page-header` — Consistent gradient header for all inner pages
-- `.form-card` — Centered card with shadow for form pages (contact, login, signup)
-- `.port-header` / `.port-table` — Portfolio-specific dashboard styling
-- `.nav-logout-form` / `.nav-logout-btn` — Clean logout button in the navbar
-
-### `home.html`
-
-The landing page. Three sections:
-1. **Hero** — Full-viewport banner with CTA button (links to signup or portfolio depending on auth state)
-2. **Features** — Three-column grid showing app capabilities
-3. **CTA** — Sign-up call to action
-
-### `about.html`
-
-Uses `{% block pre_content %}` for the page header, then static content about the company.
-
-### `contact.html`
-
-Renders the `ContactForm` by iterating over its fields:
-
+**`get_vote` filter** — Looks up a post's vote value from the `user_votes` dictionary in templates:
 ```django
-{% for field in form %}
-<div class="mb-3">
-    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-    {{ field }}
-    {% for error in field.errors %}
-    <div class="text-danger small">{{ error }}</div>
-    {% endfor %}
-</div>
-{% endfor %}
+{% with uv=user_votes|get_vote:post.pk %}
 ```
-
-- `{{ field }}` — Renders the form widget (input, textarea, etc.) as HTML
-- `{{ field.id_for_label }}` — The `id` attribute for the `<label>`'s `for` to match
-- `{{ field.errors }}` — Validation errors for this specific field
-
-### `signup.html` and `login.html`
-
-Same form-rendering pattern. Signup additionally shows `{{ field.help_text }}` (password rules). Login includes:
-- A hidden `next` field to preserve the redirect URL across the POST
-- `{{ form.non_field_errors }}` — Errors not attached to any specific field (e.g., "Invalid username or password")
-
-### `portfolio.html`
-
-The most complex template:
-
-1. **Header** (`pre_content` block) — Shows stats (holdings count, total shares, total invested) and an "Add Stock" button
-2. **Collapsible form** — Bootstrap collapse component toggled by the button. Contains a horizontal form row for adding stocks.
-3. **Holdings table** — Iterates over `holdings` queryset, showing ticker, quantity, invested, avg price, date, and a delete button per row.
-4. **Empty state** — Shows a helpful message when there are no holdings.
-
-The delete button is a mini `<form>` (not an `<a>` link) because deletion must be a POST request:
-
-```django
-<form method="post" action="{% url 'portfolio_delete' h.pk %}" class="inline-form"
-      onsubmit="return confirm('Remove {{ h.ticker }}?')">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">x</button>
-</form>
-```
-
-`onsubmit="return confirm(...)"` — Shows a browser confirmation dialog before submitting.
+Needed because Django templates can't do dictionary lookups with variable keys natively.
 
 ---
 
-## 13. Tests
+## 9. Friends App — Social Connections
 
-### `Home/tests.py`
+### Model (`friends/models.py`)
 
-31 tests organized into 7 test classes. Uses Django's `TestCase` which wraps each test in a database transaction that's rolled back afterward (fast and isolated).
+#### Friendship
 
-#### Test Classes and What They Cover
+| Field | Type | Notes |
+|-------|------|-------|
+| `sender` | ForeignKey(User) | Who sent the request |
+| `receiver` | ForeignKey(User) | Who received it |
+| `status` | CharField(10) | `'pending'` or `'accepted'` |
+| `created_at` | DateTimeField | |
+| `updated_at` | DateTimeField | |
 
-**`HomeViewTests` (2 tests)**
-- Verifies home and about pages return HTTP 200
-- Checks expected content is present in the response
+- **`UniqueConstraint(fields=['sender', 'receiver'])`** — Prevents duplicate requests.
 
-**`ContactViewTests` (5 tests)**
-- Page renders on GET
-- Valid form submission creates a `Contact` object and redirects
-- Short name (< 3 chars) is rejected
-- Short phone (< 10 chars) is rejected
-- Invalid email format is rejected
+### Views (`friends/views.py`)
 
-**`SignupViewTests` (3 tests)**
-- Page renders on GET
-- Valid submission creates a `User`, logs them in, redirects to home
-- Already-authenticated users are redirected away from the signup page
+**Helper: `_get_friends(user)`** — Queries both directions of the Friendship table (user could be sender or receiver) for accepted friendships. Returns a User queryset.
 
-**`LoginViewTests` (6 tests)**
-- Page renders on GET
-- Valid credentials log in and redirect to home
-- Invalid credentials re-render the login page (HTTP 200, not redirect)
-- Already-authenticated users are redirected away
-- **Open redirect is blocked** — `?next=https://evil.com` still redirects to home
-- **Safe `next` is honored** — `next=/portfolio/` redirects to portfolio after login
+- **`friends_list`** — Three sections: incoming pending requests, outgoing pending requests, accepted friends.
+- **`search_users`** — Searches by username (`icontains`). Builds a status lookup (`friends`/`sent`/`received`/`none`) for each result to show the appropriate button.
+- **`send_request`** — Checks both directions for existing relationships before creating. Prevents self-friending.
+- **`accept_request`** / **`decline_request`** — Only the receiver can act. Accept flips status to `accepted`; decline deletes the row.
+- **`cancel_request`** — Only the sender can cancel their pending request.
+- **`unfriend`** — Deletes the accepted Friendship in either direction.
 
-**`LogoutViewTests` (2 tests)**
-- GET request returns HTTP 405 (Method Not Allowed)
-- POST request logs out and redirects to home
+### Template Tags (`friends/templatetags/friend_tags.py`)
 
-**`PortfolioViewTests` (5 tests)**
-- Unauthenticated users are redirected to login
-- Empty portfolio shows "No holdings yet"
-- Adding a stock creates a `Portfolio` object with uppercased ticker
-- Adding to an existing ticker updates quantity and invested (F() expression)
-- Portfolio totals are correctly computed via aggregate()
-
-**`PortfolioDeleteTests` (4 tests)**
-- GET request returns HTTP 405
-- POST deletes the user's own holding
-- Cannot delete another user's holding (returns 404)
-- Deleting a nonexistent PK returns 404
-
-**`PortfolioModelTests` (3 tests)**
-- `avg_price` computes correctly (1500 / 10 = 150)
-- `avg_price` returns 0 when quantity is 0 (no ZeroDivisionError)
-- `__str__` returns expected format
-
-**Key testing patterns used:**
-
-- `self.client` — Django's test client simulates HTTP requests without a server
-- `reverse("name")` — Generates URLs by name (not hardcoded paths)
-- `self.assertRedirects(response, url)` — Checks the response is a redirect to the expected URL
-- `self.assertContains(response, text)` — Checks the text appears in the response body
-- `self.client.force_login(user)` — Logs in without needing a password (test shortcut)
+**`get_status` filter** — Same pattern as communities: dict lookup by user ID for rendering the correct button in search results.
 
 ---
 
-## 14. Other Files
+## 10. Chat App — Direct Messaging
 
-### `requirements.txt`
+### Model (`chat/models.py`)
 
-```
-asgiref==3.10.0         # ASGI spec implementation (Django dependency)
-certifi==2025.10.5      # SSL certificate bundle (requests dependency)
-charset-normalizer==3.4.4  # Character encoding detection (requests dependency)
-Django==5.2.7           # The web framework
-idna==3.11              # International domain name support (requests dependency)
-python-dotenv==1.2.1    # Loads .env files into os.environ
-requests==2.32.5        # HTTP client library (may be used for external API calls)
-sqlparse==0.5.3         # SQL formatting (Django dependency for debug toolbar)
-tzdata==2025.2          # Timezone database (required on Windows)
-urllib3==2.5.0          # HTTP library (requests dependency)
-```
+#### Message
 
-Install all dependencies with: `pip install -r requirements.txt`
+| Field | Type | Notes |
+|-------|------|-------|
+| `sender` | ForeignKey(User) | `related_name='sent_messages'` |
+| `receiver` | ForeignKey(User) | `related_name='received_messages'` |
+| `body` | TextField | |
+| `created_at` | DateTimeField | `auto_now_add=True` |
+| `is_read` | BooleanField | Default `False`. Set to `True` when receiver opens the conversation. |
 
-### `.gitignore`
+### Views (`chat/views.py`)
 
-Tells Git which files/directories to exclude from version control:
+**Helper: `_are_friends(user, other)`** — Checks if an accepted Friendship exists. All chat endpoints enforce this — only friends can message each other.
 
-```
-*.pyc / __pycache__/     # Compiled Python bytecode (auto-generated)
-svenv/ / venv/ / .venv/  # Virtual environments (large, machine-specific)
-db.sqlite3               # Database file (contains local data)
-staticfiles/             # Collected static files (generated by collectstatic)
-.env                     # Environment secrets (NEVER commit)
-.idea/ / .vscode/        # IDE configuration (personal preference)
-.DS_Store                # macOS directory metadata
-```
+- **`inbox`** — Lists all friends with their latest message and unread count. Sorted by most recent message.
+
+- **`conversation`** — Shows message history with a specific friend. Marks unread messages as read on open. Loads last 200 messages.
+
+- **`send_message`** — AJAX endpoint (POST). Validates friendship and non-empty body. Returns JSON with the new message data.
+
+- **`poll_messages`** — AJAX endpoint (GET). Returns new messages since a given `after` ID. The frontend polls this every 3 seconds. Marks received messages as read.
+
+- **`unread_count`** — Returns total unread count as JSON. Can be used for sidebar badges.
+
+### Frontend Chat Architecture
+
+The conversation template uses vanilla JavaScript (no framework):
+
+1. **Send** — `fetch()` POST to `/chat/<id>/send/` with CSRF token. Appends the message bubble to the DOM immediately.
+2. **Poll** — `setInterval(poll, 3000)` calls `/chat/<id>/poll/?after=<lastMsgId>`. Appends any new messages from the other user.
+3. **Scroll** — Auto-scrolls to bottom on new messages.
+4. **Enter key** sends messages (no Shift+Enter for newlines in this simple version).
+
+All message text is escaped via `textContent` assignment before inserting into the DOM, preventing XSS.
 
 ---
 
-## 15. Request Lifecycle — How a Request Flows Through the App
+## 11. Market Data App — Placeholder
 
-Here's the complete journey of a request to `POST /portfolio/` (adding a stock):
+Currently a placeholder page. Will eventually integrate with a stock price API to show real-time quotes, charts, and market trends.
+
+---
+
+## 12. Templates & UI Architecture
+
+### Base Template (`templates/base.html`)
+
+Every page extends `base.html`, which provides:
 
 ```
-1. Browser sends POST /portfolio/ with form data + CSRF token + session cookie
+┌─────────────────────────────────────────────┐
+│ Navbar (sc-navbar)                           │
+│   [Toggle] StockChat    Home About Contact   │
+├──────┬──────────────────────────────────────┤
+│      │                                       │
+│  S   │  Main Content                         │
+│  i   │  ┌─ pre_content block ──────────────┐│
+│  d   │  │ (page headers)                    ││
+│  e   │  ├──────────────────────────────────┤│
+│  b   │  │ Flash messages                    ││
+│  a   │  ├──────────────────────────────────┤│
+│  r   │  │ content block                     ││
+│      │  │ (main page content)               ││
+│      │  └──────────────────────────────────┘│
+├──────┴──────────────────────────────────────┤
+│ Footer                                       │
+└─────────────────────────────────────────────┘
+```
 
-2. Django's WSGI/ASGI handler receives the request
+### Sidebar
 
-3. MIDDLEWARE PIPELINE (top to bottom):
-   ├─ SecurityMiddleware       → checks HTTPS, adds security headers
-   ├─ SessionMiddleware        → reads session cookie, loads session data
-   ├─ CommonMiddleware         → normalizes URL (trailing slash)
-   ├─ CsrfViewMiddleware      → validates CSRF token from POST data
-   ├─ AuthenticationMiddleware → reads user ID from session, sets request.user
+- Only shown for authenticated users.
+- Grouped into **Invest** (Portfolio, Market Data) and **Social** (Communities, Friends, Chat) sections.
+- Fully collapsible to `width: 0` via toggle button. State persisted in `localStorage`.
+- On mobile (<768px): slides in as a fixed overlay with backdrop.
+- Active state determined by `request.path` prefix matching.
+
+### Design System
+
+| CSS Variable | Value | Usage |
+|-------------|-------|-------|
+| `--sc-dark` | `#0a1628` | Navbar, sidebar, footer background |
+| `--sc-mid` | `#132743` | Gradients, avatars |
+| `--sc-accent` | `#2563eb` | Buttons, active states, links |
+| `--sc-surface` | `#f8fafc` | Page background |
+| `--sc-border` | `#e2e8f0` | Card borders |
+| `--sc-text` | `#1e293b` | Primary text |
+| `--sc-text-muted` | `#64748b` | Secondary text |
+
+The UI uses Bootstrap Icons (not emojis) throughout for a professional financial aesthetic.
+
+### Template Blocks
+
+| Block | Purpose |
+|-------|---------|
+| `title` | Page `<title>` |
+| `extra_head` | Per-page CSS |
+| `pre_content` | Page headers (portfolio stats header, etc.) |
+| `content` | Main page body |
+| `extra_scripts` | Per-page JavaScript |
+
+---
+
+## 13. Migrations
+
+### Migration Strategy for App Split
+
+The Portfolio model was moved from the `Home` app to the `portfolio` app. This required a careful two-step migration using `SeparateDatabaseAndState`:
+
+1. **`Home/0005_remove_portfolio_model.py`** — Removes Portfolio from Django's state only (no SQL). The database table stays as-is.
+2. **`portfolio/0001_initial.py`** — Creates Portfolio in Django's state only (no SQL). Points to the existing `Home_portfolio` table via `db_table`.
+
+This approach preserves all existing data while cleanly moving the model between apps.
+
+### Migration Files by App
+
+| App | Migrations | Key Operations |
+|-----|-----------|----------------|
+| Home | 0001-0005 | Contact table, Portfolio table (created then removed from state) |
+| portfolio | 0001 | Portfolio model (state-only, reuses Home_portfolio table) |
+| communities | 0001 | Post, Vote (with unique constraint), Comment (with self-FK) |
+| friends | 0001 | Friendship (with unique constraint) |
+| chat | 0001 | Message |
+
+---
+
+## 14. Request Lifecycle
+
+Here's the journey of a POST to `/communities/3/vote/` (upvoting a post):
+
+```
+1. Browser sends POST with form data + CSRF token + session cookie
+
+2. MIDDLEWARE PIPELINE (top to bottom):
+   ├─ SecurityMiddleware       → security headers
+   ├─ SessionMiddleware        → loads session from cookie
+   ├─ CommonMiddleware         → URL normalization
+   ├─ CsrfViewMiddleware      → validates CSRF token
+   ├─ AuthenticationMiddleware → sets request.user from session
    ├─ MessageMiddleware        → enables flash messages
-   └─ XFrameOptionsMiddleware  → adds X-Frame-Options header
+   └─ XFrameOptionsMiddleware  → X-Frame-Options header
 
-4. URL RESOLUTION:
-   ├─ StockChat/urls.py: path('', include('Home.urls'))  → matches, strips nothing
-   └─ Home/urls.py: path('portfolio/', views.portfolio_view)  → matches!
+3. URL RESOLUTION:
+   ├─ StockChat/urls.py: path('communities/', include('communities.urls'))
+   └─ communities/urls.py: path('<int:pk>/vote/', views.post_vote) → pk=3
 
-5. DECORATOR CHECK:
-   └─ @login_required → request.user.is_authenticated? Yes → proceed
+4. DECORATORS:
+   ├─ @login_required → user is authenticated? Yes → proceed
+   └─ @require_POST → method is POST? Yes → proceed
 
-6. VIEW FUNCTION: portfolio_view(request)
-   ├─ request.method == "POST" → True
-   ├─ form = PortfolioAddForm(request.POST)
-   ├─ form.is_valid()
-   │   ├─ Django validates each field (type, min_value, max_length)
-   │   ├─ clean_ticker() → strips and uppercases
-   │   └─ clean_stock_name() → strips whitespace
-   ├─ Portfolio.objects.filter(user=..., ticker=...).update(F("quantity") + ...)
-   │   └─ SQL: UPDATE home_portfolio SET quantity = quantity + 5 WHERE user_id=1 AND ticker='AAPL'
-   │   └─ Returns 1 (one row updated)
-   ├─ messages.success(request, "AAPL updated...")
-   └─ return redirect("portfolio")  → HttpResponseRedirect to /portfolio/
+5. VIEW: post_vote(request, pk=3)
+   ├─ get_object_or_404(Post, pk=3) → loads the post
+   ├─ value = int(request.POST['value']) → 1 (upvote)
+   ├─ Vote.objects.get_or_create(user=request.user, post=post)
+   │   └─ SQL: SELECT ... WHERE user_id=1 AND post_id=3
+   │   └─ Not found → INSERT INTO communities_vote (user_id, post_id, value) VALUES (1, 3, 1)
+   ├─ Recompute score: SELECT SUM(value) FROM communities_vote WHERE post_id=3
+   ├─ Check X-Requested-With header → not AJAX
+   └─ return redirect('post_detail', pk=3)
 
-7. MIDDLEWARE PIPELINE (bottom to top):
-   ├─ MessageMiddleware        → stores flash message in session
-   ├─ SessionMiddleware        → writes session to database, sets cookie
-   └─ SecurityMiddleware       → adds security headers
+6. MIDDLEWARE PIPELINE (bottom to top):
+   ├─ SessionMiddleware → writes session, sets cookie
+   └─ SecurityMiddleware → adds headers
 
-8. Browser receives HTTP 302, follows redirect to GET /portfolio/
+7. Browser follows HTTP 302 → GET /communities/3/
 
-9. Steps 3-7 repeat for the GET request, this time:
-   ├─ portfolio_view runs the GET branch
-   ├─ holdings = Portfolio.objects.filter(user=request.user).order_by("ticker")
-   │   └─ SQL: SELECT * FROM home_portfolio WHERE user_id=1 ORDER BY ticker
-   ├─ holdings.aggregate(Sum("invested"), Sum("quantity"))
-   │   └─ SQL: SELECT SUM(invested), SUM(quantity) FROM home_portfolio WHERE user_id=1
-   └─ render() loads portfolio.html, passes holdings + totals as context
-
-10. Template rendering:
-    ├─ portfolio.html extends base.html
-    ├─ base.html renders navbar, checks {% if messages %} → shows "AAPL updated" alert
-    ├─ portfolio.html renders stats header, holdings table
-    └─ Final HTML is returned as the response body
-
-11. Browser renders the page
+8. The GET request flows through the same pipeline, loading the post detail page
+   with the updated vote count and the user's vote highlighted.
 ```
 
-This illustrates how Django's components work together: middleware handles cross-cutting concerns, URL routing dispatches to the right view, forms validate input, the ORM talks to the database, and templates produce the HTML output.
+This illustrates the separation of concerns: middleware handles cross-cutting concerns, URL routing dispatches to the right app, decorators enforce access control, views contain business logic, the ORM handles database operations, and templates produce HTML.
