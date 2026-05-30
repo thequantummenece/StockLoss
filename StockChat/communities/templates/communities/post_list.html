@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load community_tags %}
+{% block title %}Communities — StockChat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .feed-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 0 1rem;
+    }
+    .feed-header h1 { font-size: 1.3rem; font-weight: 700; margin: 0; }
+    .sort-tabs {
+        display: flex;
+        gap: .25rem;
+        background: #fff;
+        border: 1px solid var(--sc-border);
+        border-radius: .35rem;
+        padding: .15rem;
+    }
+    .sort-tabs a {
+        font-size: .78rem;
+        font-weight: 600;
+        padding: .3rem .75rem;
+        border-radius: .25rem;
+        color: var(--sc-text-muted);
+        text-decoration: none;
+        transition: all .12s;
+    }
+    .sort-tabs a.active { background: var(--sc-accent); color: #fff; }
+    .sort-tabs a:hover:not(.active) { background: var(--sc-surface); }
+
+    .post-card {
+        background: #fff;
+        border: 1px solid var(--sc-border);
+        border-radius: .5rem;
+        margin-bottom: .75rem;
+        display: flex;
+        transition: border-color .12s;
+    }
+    .post-card:hover { border-color: #cbd5e1; }
+    .vote-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: .75rem .5rem;
+        min-width: 48px;
+        gap: .1rem;
+        background: rgba(0,0,0,.015);
+        border-radius: .5rem 0 0 .5rem;
+    }
+    .vote-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: .15rem;
+        font-size: 1rem;
+        color: #94a3b8;
+        line-height: 1;
+        transition: color .12s;
+    }
+    .vote-btn:hover { color: var(--sc-text); }
+    .vote-btn.upvoted { color: #f97316; }
+    .vote-btn.downvoted { color: #6366f1; }
+    .vote-score { font-size: .8rem; font-weight: 700; color: var(--sc-text); line-height: 1; }
+
+    .post-body { padding: .75rem 1rem; flex: 1; min-width: 0; }
+    .post-title {
+        font-size: .95rem;
+        font-weight: 600;
+        color: var(--sc-text);
+        text-decoration: none;
+        line-height: 1.3;
+        display: block;
+        margin-bottom: .3rem;
+    }
+    .post-title:hover { color: var(--sc-accent); }
+    .post-meta { font-size: .75rem; color: var(--sc-text-muted); }
+    .post-preview {
+        font-size: .84rem;
+        color: var(--sc-text-muted);
+        margin: .35rem 0 0;
+        line-height: 1.45;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .post-stats {
+        display: flex;
+        gap: 1rem;
+        margin-top: .4rem;
+        font-size: .75rem;
+        color: var(--sc-text-muted);
+        font-weight: 500;
+    }
+    .post-stats i { margin-right: .2rem; }
+    .empty-feed { text-align: center; padding: 4rem 2rem; color: var(--sc-text-muted); }
+    .empty-feed i { font-size: 2rem; opacity: .3; display: block; margin-bottom: .75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:720px;">
+    <div class="feed-header">
+        <h1>Communities</h1>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="sort-tabs">
+                <a href="?sort=new" class="{% if current_sort == 'new' %}active{% endif %}">New</a>
+                <a href="?sort=top" class="{% if current_sort == 'top' %}active{% endif %}">Top</a>
+            </div>
+            <a href="{% url 'post_create' %}" class="btn btn-primary btn-sm">New Post</a>
+        </div>
+    </div>
+
+    {% if posts %}
+        {% for post in posts %}
+        {% with uv=user_votes|get_vote:post.pk %}
+        <div class="post-card">
+            <div class="vote-col">
+                <form method="post" action="{% url 'post_vote' post.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="1">
+                    <button type="submit" class="vote-btn {% if uv == 1 %}upvoted{% endif %}">
+                        <i class="bi bi-caret-up-fill"></i>
+                    </button>
+                </form>
+                <span class="vote-score">{{ post.net_score }}</span>
+                <form method="post" action="{% url 'post_vote' post.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="value" value="-1">
+                    <button type="submit" class="vote-btn {% if uv == -1 %}downvoted{% endif %}">
+                        <i class="bi bi-caret-down-fill"></i>
+                    </button>
+                </form>
+            </div>
+            <div class="post-body">
+                <a href="{% url 'post_detail' post.pk %}" class="post-title">{{ post.title }}</a>
+                <div class="post-meta">
+                    {{ post.author.username }} &middot; {{ post.created_at|timesince }} ago
+                </div>
+                {% if post.body %}
+                <div class="post-preview">{{ post.body|truncatewords:40 }}</div>
+                {% endif %}
+                <div class="post-stats">
+                    <span><i class="bi bi-chat-left"></i> {{ post.num_comments }} comment{{ post.num_comments|pluralize }}</span>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    {% else %}
+        <div class="empty-feed">
+            <i class="bi bi-megaphone"></i>
+            <p>No posts yet. Be the first to start a discussion.</p>
+            <a href="{% url 'post_create' %}" class="btn btn-primary btn-sm">Create Post</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

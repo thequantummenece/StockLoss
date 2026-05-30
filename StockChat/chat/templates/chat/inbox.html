@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Chat — StockChat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .inbox-wrap { max-width: 680px; margin: 0 auto; padding: 1.5rem 0 3rem; }
+    .inbox-header { margin-bottom: 1.25rem; }
+    .inbox-header h1 { font-size: 1.3rem; font-weight: 700; margin: 0; }
+
+    .convo-card {
+        background: #fff;
+        border: 1px solid var(--sc-border);
+        border-radius: .5rem;
+        padding: .75rem 1rem;
+        margin-bottom: .5rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        text-decoration: none;
+        color: inherit;
+        transition: border-color .12s;
+    }
+    .convo-card:hover { border-color: #cbd5e1; color: inherit; }
+    .convo-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--sc-mid);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+    .convo-body { flex: 1; min-width: 0; }
+    .convo-name {
+        font-size: .9rem;
+        font-weight: 600;
+        color: var(--sc-text);
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+    .convo-preview {
+        font-size: .8rem;
+        color: var(--sc-text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: .1rem;
+    }
+    .convo-time {
+        font-size: .72rem;
+        color: var(--sc-text-muted);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .unread-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--sc-accent);
+        color: #fff;
+        font-size: .6rem;
+        font-weight: 700;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        padding: 0 .35rem;
+    }
+    .empty-inbox {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--sc-text-muted);
+        font-size: .85rem;
+    }
+    .empty-inbox i { font-size: 2rem; opacity: .3; display: block; margin-bottom: .75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container inbox-wrap">
+    <div class="inbox-header">
+        <h1>Chat</h1>
+    </div>
+
+    {% if conversations %}
+        {% for c in conversations %}
+        <a href="{% url 'conversation' c.friend.pk %}" class="convo-card">
+            <div class="convo-avatar">{{ c.friend.username|first }}</div>
+            <div class="convo-body">
+                <div class="convo-name">
+                    {{ c.friend.username }}
+                    {% if c.unread %}<span class="unread-badge">{{ c.unread }}</span>{% endif %}
+                </div>
+                <div class="convo-preview">
+                    {% if c.latest %}
+                        {% if c.latest.sender == user %}You: {% endif %}{{ c.latest.body|truncatewords:12 }}
+                    {% else %}
+                        No messages yet
+                    {% endif %}
+                </div>
+            </div>
+            {% if c.latest %}
+            <div class="convo-time">{{ c.latest.created_at|timesince }} ago</div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="empty-inbox">
+            <i class="bi bi-chat-left-text"></i>
+            <p>No conversations yet. Add some friends to start chatting.</p>
+            <a href="{% url 'search_users' %}" class="btn btn-primary btn-sm">Find People</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

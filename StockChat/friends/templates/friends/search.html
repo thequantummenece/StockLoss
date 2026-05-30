@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load friend_tags %}
+{% block title %}Find People — StockChat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .search-wrap { max-width: 680px; margin: 0 auto; padding: 1.5rem 0 3rem; }
+    .search-header {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: 1.25rem;
+    }
+    .search-header a {
+        color: var(--sc-text-muted);
+        text-decoration: none;
+        font-size: 1.1rem;
+    }
+    .search-header a:hover { color: var(--sc-text); }
+    .search-header h1 { font-size: 1.3rem; font-weight: 700; margin: 0; }
+
+    .search-box {
+        display: flex;
+        gap: .5rem;
+        margin-bottom: 1.25rem;
+    }
+    .search-box input {
+        flex: 1;
+        border: 1px solid var(--sc-border);
+        border-radius: .35rem;
+        padding: .45rem .75rem;
+        font-size: .9rem;
+        outline: none;
+        transition: border-color .15s;
+    }
+    .search-box input:focus {
+        border-color: var(--sc-accent);
+        box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+
+    .user-card {
+        background: #fff;
+        border: 1px solid var(--sc-border);
+        border-radius: .5rem;
+        padding: .7rem 1rem;
+        margin-bottom: .5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .user-info { display: flex; align-items: center; gap: .65rem; }
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--sc-mid);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+    .user-name { font-size: .9rem; font-weight: 600; color: var(--sc-text); }
+
+    .btn-add {
+        background: var(--sc-accent);
+        color: #fff;
+        border: none;
+        font-size: .78rem;
+        font-weight: 600;
+        padding: .3rem .75rem;
+        border-radius: .3rem;
+        cursor: pointer;
+    }
+    .btn-add:hover { background: var(--sc-accent-hover); }
+    .status-tag {
+        font-size: .75rem;
+        font-weight: 500;
+        padding: .25rem .65rem;
+        border-radius: .3rem;
+        border: 1px solid var(--sc-border);
+        color: var(--sc-text-muted);
+    }
+    .status-tag.friends { border-color: #059669; color: #059669; }
+
+    .no-results {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--sc-text-muted);
+        font-size: .85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container search-wrap">
+    <div class="search-header">
+        <a href="{% url 'friends' %}"><i class="bi bi-arrow-left"></i></a>
+        <h1>Find People</h1>
+    </div>
+
+    <form method="get" class="search-box">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search by username..." autofocus>
+        <button type="submit" class="btn btn-primary btn-sm px-3">Search</button>
+    </form>
+
+    {% if query %}
+        {% if results %}
+            {% for u in results %}
+            {% with status=user_statuses|get_status:u.pk %}
+            <div class="user-card">
+                <div class="user-info">
+                    <div class="user-avatar">{{ u.username|first }}</div>
+                    <div class="user-name">{{ u.username }}</div>
+                </div>
+                {% if status == 'friends' %}
+                    <span class="status-tag friends">Friends</span>
+                {% elif status == 'sent' %}
+                    <span class="status-tag">Request Sent</span>
+                {% elif status == 'received' %}
+                    <span class="status-tag">Sent You a Request</span>
+                {% else %}
+                    <form method="post" action="{% url 'send_request' u.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-add">Add Friend</button>
+                    </form>
+                {% endif %}
+            </div>
+            {% endwith %}
+            {% endfor %}
+        {% else %}
+            <div class="no-results">
+                No users found matching "{{ query }}".
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="no-results">
+            Type a username to search.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
