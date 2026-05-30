@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Friends — StockChat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .friends-wrap { max-width: 680px; margin: 0 auto; padding: 1.5rem 0 3rem; }
+    .friends-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+    }
+    .friends-header h1 { font-size: 1.3rem; font-weight: 700; margin: 0; }
+
+    .section-label {
+        font-size: .72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .8px;
+        color: var(--sc-text-muted);
+        margin: 1.5rem 0 .5rem;
+    }
+    .section-label:first-of-type { margin-top: 0; }
+
+    .user-card {
+        background: #fff;
+        border: 1px solid var(--sc-border);
+        border-radius: .5rem;
+        padding: .7rem 1rem;
+        margin-bottom: .5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+    }
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--sc-mid);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+    .user-name {
+        font-size: .9rem;
+        font-weight: 600;
+        color: var(--sc-text);
+    }
+    .user-sub {
+        font-size: .75rem;
+        color: var(--sc-text-muted);
+    }
+    .user-actions {
+        display: flex;
+        gap: .35rem;
+    }
+    .user-actions form { display: inline; }
+
+    .btn-accept {
+        background: #059669;
+        color: #fff;
+        border: none;
+        font-size: .78rem;
+        font-weight: 600;
+        padding: .3rem .75rem;
+        border-radius: .3rem;
+        cursor: pointer;
+    }
+    .btn-accept:hover { background: #047857; }
+    .btn-decline {
+        background: none;
+        border: 1px solid var(--sc-border);
+        color: var(--sc-text-muted);
+        font-size: .78rem;
+        font-weight: 500;
+        padding: .3rem .75rem;
+        border-radius: .3rem;
+        cursor: pointer;
+    }
+    .btn-decline:hover { border-color: #ef4444; color: #ef4444; }
+    .btn-unfriend {
+        background: none;
+        border: 1px solid var(--sc-border);
+        color: var(--sc-text-muted);
+        font-size: .75rem;
+        font-weight: 500;
+        padding: .25rem .65rem;
+        border-radius: .3rem;
+        cursor: pointer;
+    }
+    .btn-unfriend:hover { border-color: #ef4444; color: #ef4444; }
+    .btn-cancel {
+        background: none;
+        border: 1px solid var(--sc-border);
+        color: var(--sc-text-muted);
+        font-size: .75rem;
+        font-weight: 500;
+        padding: .25rem .65rem;
+        border-radius: .3rem;
+        cursor: pointer;
+    }
+    .btn-cancel:hover { border-color: var(--sc-text-muted); color: var(--sc-text); }
+
+    .empty-section {
+        font-size: .85rem;
+        color: var(--sc-text-muted);
+        padding: 1rem 0;
+    }
+    .pending-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #ef4444;
+        color: #fff;
+        font-size: .65rem;
+        font-weight: 700;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        margin-left: .3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container friends-wrap">
+    <div class="friends-header">
+        <h1>Friends</h1>
+        <a href="{% url 'search_users' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-search"></i> Find People
+        </a>
+    </div>
+
+    {% if incoming %}
+    <div class="section-label">
+        Pending Requests
+        <span class="pending-badge">{{ incoming|length }}</span>
+    </div>
+    {% for req in incoming %}
+    <div class="user-card">
+        <div class="user-info">
+            <div class="user-avatar">{{ req.sender.username|first }}</div>
+            <div>
+                <div class="user-name">{{ req.sender.username }}</div>
+                <div class="user-sub">Sent {{ req.created_at|timesince }} ago</div>
+            </div>
+        </div>
+        <div class="user-actions">
+            <form method="post" action="{% url 'accept_request' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-accept">Accept</button>
+            </form>
+            <form method="post" action="{% url 'decline_request' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-decline">Decline</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if outgoing %}
+    <div class="section-label">Sent Requests</div>
+    {% for req in outgoing %}
+    <div class="user-card">
+        <div class="user-info">
+            <div class="user-avatar">{{ req.receiver.username|first }}</div>
+            <div>
+                <div class="user-name">{{ req.receiver.username }}</div>
+                <div class="user-sub">Sent {{ req.created_at|timesince }} ago</div>
+            </div>
+        </div>
+        <div class="user-actions">
+            <form method="post" action="{% url 'cancel_request' req.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-cancel">Cancel</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="section-label">Your Friends ({{ friends|length }})</div>
+    {% if friends %}
+        {% for friend in friends %}
+        <div class="user-card">
+            <div class="user-info">
+                <div class="user-avatar">{{ friend.username|first }}</div>
+                <div>
+                    <div class="user-name">{{ friend.username }}</div>
+                </div>
+            </div>
+            <div class="user-actions">
+                <form method="post" action="{% url 'unfriend' friend.pk %}" onsubmit="return confirm('Remove {{ friend.username }} from friends?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-unfriend">Unfriend</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-section">
+            No friends yet. <a href="{% url 'search_users' %}">Search for people</a> to connect with.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

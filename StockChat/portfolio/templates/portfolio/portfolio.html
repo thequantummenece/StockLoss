@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Portfolio — StockChat{% endblock %}
+
+{% block pre_content %}
+<div class="port-header">
+    <div class="container d-flex align-items-end justify-content-between flex-wrap gap-3">
+        <div>
+            <h2>My Portfolio</h2>
+            <div class="mt-2">
+                <div class="stat"><span>{{ holdings|length }}</span><small>Holdings</small></div>
+                <div class="stat"><span>{{ total_shares }}</span><small>Shares</small></div>
+                <div class="stat"><span>{{ total_invested|floatformat:2 }}</span><small>Invested</small></div>
+            </div>
+        </div>
+        <button class="btn btn-light btn-sm" data-bs-toggle="collapse" data-bs-target="#addForm">+ Add Stock</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Collapsible Add Form -->
+<div class="collapse" id="addForm">
+    <div class="container py-3">
+        <form method="post" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <div class="col-md-2">
+                <label class="form-label mb-0 small">Ticker</label>
+                <input type="text" class="form-control form-control-sm" name="ticker" placeholder="AAPL" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-0 small">Stock Name</label>
+                <input type="text" class="form-control form-control-sm" name="stock_name" placeholder="Apple Inc." required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-0 small">Shares</label>
+                <input type="number" class="form-control form-control-sm" name="quantity" min="1" placeholder="10" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-0 small">Invested Amount</label>
+                <input type="number" class="form-control form-control-sm" name="invested" min="0.01" step="0.01" placeholder="25000.00" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">Add</button>
+            </div>
+        </form>
+    </div>
+    <hr class="m-0">
+</div>
+
+<!-- Holdings Table -->
+<div class="container my-4">
+    {% if holdings %}
+    <div class="table-responsive">
+        <table class="table table-hover port-table mb-0">
+            <thead>
+                <tr>
+                    <th>Ticker</th>
+                    <th>Shares</th>
+                    <th>Invested</th>
+                    <th>Avg Price</th>
+                    <th>Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in holdings %}
+                <tr>
+                    <td>
+                        <span class="ticker">{{ h.ticker }}</span>
+                        <span class="stock-name d-block">{{ h.stock_name }}</span>
+                    </td>
+                    <td>{{ h.quantity }}</td>
+                    <td>{{ h.invested|floatformat:2 }}</td>
+                    <td>{{ h.avg_price|floatformat:2 }}</td>
+                    <td class="text-muted small">{{ h.added_at|date:"d M Y" }}</td>
+                    <td>
+                        <form method="post" action="{% url 'portfolio_delete' h.pk %}" class="inline-form" onsubmit="return confirm('Remove {{ h.ticker }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">x</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-center text-muted py-5">No holdings yet. Click <strong>+ Add Stock</strong> above to get started.</p>
+    {% endif %}
+</div>
+{% endblock %}

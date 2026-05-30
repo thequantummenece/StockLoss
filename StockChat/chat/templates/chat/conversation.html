@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ other.username }} — StockChat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - var(--sc-navbar-h));
+        padding: 0;
+    }
+
+    /* Header */
+    .chat-header {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        padding: .75rem 1rem;
+        border-bottom: 1px solid var(--sc-border);
+        background: #fff;
+        flex-shrink: 0;
+    }
+    .chat-header a {
+        color: var(--sc-text-muted);
+        text-decoration: none;
+        font-size: 1.1rem;
+    }
+    .chat-header a:hover { color: var(--sc-text); }
+    .chat-header-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--sc-mid);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .chat-header-name {
+        font-size: .95rem;
+        font-weight: 600;
+        color: var(--sc-text);
+    }
+
+    /* Messages area */
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: .35rem;
+        background: var(--sc-surface);
+    }
+    .msg {
+        max-width: 70%;
+        padding: .5rem .85rem;
+        border-radius: .75rem;
+        font-size: .87rem;
+        line-height: 1.45;
+        word-wrap: break-word;
+    }
+    .msg-mine {
+        align-self: flex-end;
+        background: var(--sc-accent);
+        color: #fff;
+        border-bottom-right-radius: .2rem;
+    }
+    .msg-theirs {
+        align-self: flex-start;
+        background: #fff;
+        border: 1px solid var(--sc-border);
+        color: var(--sc-text);
+        border-bottom-left-radius: .2rem;
+    }
+    .msg-time {
+        font-size: .65rem;
+        opacity: .6;
+        margin-top: .15rem;
+    }
+    .msg-mine .msg-time { text-align: right; }
+
+    /* Day divider */
+    .msg-divider {
+        text-align: center;
+        font-size: .7rem;
+        color: var(--sc-text-muted);
+        padding: .5rem 0;
+    }
+
+    /* Input area */
+    .chat-input {
+        display: flex;
+        gap: .5rem;
+        padding: .75rem 1rem;
+        border-top: 1px solid var(--sc-border);
+        background: #fff;
+        flex-shrink: 0;
+    }
+    .chat-input input {
+        flex: 1;
+        border: 1px solid var(--sc-border);
+        border-radius: .35rem;
+        padding: .5rem .75rem;
+        font-size: .88rem;
+        outline: none;
+        transition: border-color .15s;
+    }
+    .chat-input input:focus {
+        border-color: var(--sc-accent);
+        box-shadow: 0 0 0 2px rgba(37,99,235,.08);
+    }
+    .chat-input button {
+        background: var(--sc-accent);
+        color: #fff;
+        border: none;
+        border-radius: .35rem;
+        padding: .5rem 1.25rem;
+        font-size: .85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .12s;
+    }
+    .chat-input button:hover { background: var(--sc-accent-hover); }
+    .chat-input button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .empty-chat {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--sc-text-muted);
+        font-size: .85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container chat-wrap">
+    <div class="chat-header">
+        <a href="{% url 'chat' %}"><i class="bi bi-arrow-left"></i></a>
+        <div class="chat-header-avatar">{{ other.username|first }}</div>
+        <div class="chat-header-name">{{ other.username }}</div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="msg {% if msg.sender == user %}msg-mine{% else %}msg-theirs{% endif %}" data-id="{{ msg.pk }}">
+                {{ msg.body }}
+                <div class="msg-time">{{ msg.created_at|date:"H:i" }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-chat" id="emptyChat">
+                No messages yet. Say hello!
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="chat-input">
+        <input type="text" id="msgInput" placeholder="Type a message..." autocomplete="off">
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    var otherUserId = {{ other.pk }};
+    var sendUrl = '{% url "send_message" other.pk %}';
+    var pollUrl = '{% url "poll_messages" other.pk %}';
+    var csrfToken = '{{ csrf_token }}';
+    var chatBox = document.getElementById('chatMessages');
+    var input = document.getElementById('msgInput');
+    var sendBtn = document.getElementById('sendBtn');
+    var lastMsgId = 0;
+
+    // Get last message ID from DOM
+    var allMsgs = chatBox.querySelectorAll('.msg[data-id]');
+    if (allMsgs.length > 0) {
+        lastMsgId = parseInt(allMsgs[allMsgs.length - 1].dataset.id) || 0;
+    }
+
+    // Scroll to bottom
+    function scrollBottom() {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    scrollBottom();
+
+    // Add message to chat
+    function appendMsg(body, time, isMine, id) {
+        var empty = document.getElementById('emptyChat');
+        if (empty) empty.remove();
+
+        var div = document.createElement('div');
+        div.className = 'msg ' + (isMine ? 'msg-mine' : 'msg-theirs');
+        if (id) div.dataset.id = id;
+        div.innerHTML = escapeHtml(body) + '<div class="msg-time">' + escapeHtml(time) + '</div>';
+        chatBox.appendChild(div);
+        scrollBottom();
+    }
+
+    function escapeHtml(text) {
+        var d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    // Send message
+    window.sendMessage = function() {
+        var body = input.value.trim();
+        if (!body) return;
+
+        sendBtn.disabled = true;
+        input.value = '';
+
+        var form = new FormData();
+        form.append('body', body);
+
+        fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+            body: form,
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) return;
+            appendMsg(data.body, data.created_at, true, data.id);
+            if (data.id > lastMsgId) lastMsgId = data.id;
+        })
+        .finally(function() { sendBtn.disabled = false; input.focus(); });
+    };
+
+    // Send on Enter
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // Poll for new messages
+    function poll() {
+        fetch(pollUrl + '?after=' + lastMsgId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.messages) {
+                data.messages.forEach(function(m) {
+                    appendMsg(m.body, m.created_at, m.is_mine, m.id);
+                    if (m.id > lastMsgId) lastMsgId = m.id;
+                });
+            }
+        });
+    }
+
+    setInterval(poll, 3000);
+    input.focus();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Chat — StockChat{% endblock %}
+
+{% block content %}
+<div class="placeholder-page">
+    <div class="ph-icon"><i class="bi bi-shield-lock"></i></div>
+    <h2>Can't message {{ other.username }}</h2>
+    <p>You can only chat with people on your friends list.</p>
+    <a href="{% url 'friends' %}" class="btn btn-primary btn-sm mt-2">Go to Friends</a>
+</div>
+{% endblock %}
